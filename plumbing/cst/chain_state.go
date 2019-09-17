@@ -23,10 +23,16 @@ type chainReader interface {
 	GetTipSetState(context.Context, types.TipSetKey) (state.Tree, error)
 }
 
-// ChainStateProvider composes a chain and a state store to provide access to
-// the state (including actors) derived from a chain.
-type ChainStateProvider struct {
-	reader          chainReader         // Provides chain tipsets and state roots.
+type chainWriter interface {
+	SetHead(context.Context, types.TipSet) error
+}
+
+// ChainStateReadWriter composes a:
+// ChainReader providing read access to the chain and its associated state.
+// ChainWriter providing write access to the chain head.
+type ChainStateReadWriter struct {
+	reader          chainReader         // Provides read access to the chain state.
+	writer          chainWriter         // Provides write access to the chain state.
 	cst             *hamt.CborIpldStore // Provides chain blocks and state trees.
 	messageProvider chain.MessageProvider
 }
@@ -41,27 +47,28 @@ var (
 	ErrNoActorImpl = errors.New("no actor implementation")
 )
 
-// NewChainStateProvider returns a new ChainStateProvider.
-func NewChainStateProvider(chainReader chainReader, messages chain.MessageProvider, cst *hamt.CborIpldStore) *ChainStateProvider {
-	return &ChainStateProvider{
+// NewChainReadWriter returns a new ChainStateReadWriter.
+func NewChainReadWriter(chainReader chainReader, chainWriter chainWriter, messages chain.MessageProvider, cst *hamt.CborIpldStore) *ChainStateReadWriter {
+	return &ChainStateReadWriter{
 		reader:          chainReader,
+		writer:          chainWriter,
 		cst:             cst,
 		messageProvider: messages,
 	}
 }
 
 // Head returns the head tipset
-func (chn *ChainStateProvider) Head() types.TipSetKey {
+func (chn *ChainStateReadWriter) Head() types.TipSetKey {
 	return chn.reader.GetHead()
 }
 
 // GetTipSet returns the tipset at the given key
-func (chn *ChainStateProvider) GetTipSet(key types.TipSetKey) (types.TipSet, error) {
+func (chn *ChainStateReadWriter) GetTipSet(key types.TipSetKey) (types.TipSet, error) {
 	return chn.reader.GetTipSet(key)
 }
 
 // Ls returns an iterator over tipsets from head to genesis.
-func (chn *ChainStateProvider) Ls(ctx context.Context) (*chain.TipsetIterator, error) {
+func (chn *ChainStateReadWriter) Ls(ctx context.Context) (*chain.TipsetIterator, error) {
 	ts, err := chn.reader.GetTipSet(chn.reader.GetHead())
 	if err != nil {
 		return nil, err
@@ -70,24 +77,24 @@ func (chn *ChainStateProvider) Ls(ctx context.Context) (*chain.TipsetIterator, e
 }
 
 // GetBlock gets a block by CID
-func (chn *ChainStateProvider) GetBlock(ctx context.Context, id cid.Cid) (*types.Block, error) {
+func (chn *ChainStateReadWriter) GetBlock(ctx context.Context, id cid.Cid) (*types.Block, error) {
 	var out types.Block
 	err := chn.cst.Get(ctx, id, &out)
 	return &out, err
 }
 
 // GetMessages gets a message collection by CID.
-func (chn *ChainStateProvider) GetMessages(ctx context.Context, id cid.Cid) ([]*types.SignedMessage, error) {
+func (chn *ChainStateReadWriter) GetMessages(ctx context.Context, id cid.Cid) ([]*types.SignedMessage, error) {
 	return chn.messageProvider.LoadMessages(ctx, id)
 }
 
 // GetReceipts gets a receipt collection by CID.
-func (chn *ChainStateProvider) GetReceipts(ctx context.Context, id cid.Cid) ([]*types.MessageReceipt, error) {
+func (chn *ChainStateReadWriter) GetReceipts(ctx context.Context, id cid.Cid) ([]*types.MessageReceipt, error) {
 	return chn.messageProvider.LoadReceipts(ctx, id)
 }
 
 // SampleRandomness samples randomness from the chain at the given height.
-func (chn *ChainStateProvider) SampleRandomness(ctx context.Context, sampleHeight *types.BlockHeight) ([]byte, error) {
+func (chn *ChainStateReadWriter) SampleRandomness(ctx context.Context, sampleHeight *types.BlockHeight) ([]byte, error) {
 	head := chn.reader.GetHead()
 	headTipSet, err := chn.reader.GetTipSet(head)
 	if err != nil {
@@ -102,12 +109,12 @@ func (chn *ChainStateProvider) SampleRandomness(ctx context.Context, sampleHeigh
 }
 
 // GetActor returns an actor from the latest state on the chain
-func (chn *ChainStateProvider) GetActor(ctx context.Context, addr address.Address) (*actor.Actor, error) {
+func (chn *ChainStateReadWriter) GetActor(ctx context.Context, addr address.Address) (*actor.Actor, error) {
 	return chn.GetActorAt(ctx, chn.reader.GetHead(), addr)
 }
 
 // GetActorAt returns an actor at a specified tipset key.
-func (chn *ChainStateProvider) GetActorAt(ctx context.Context, tipKey types.TipSetKey, addr address.Address) (*actor.Actor, error) {
+func (chn *ChainStateReadWriter) GetActorAt(ctx context.Context, tipKey types.TipSetKey, addr address.Address) (*actor.Actor, error) {
 	st, err := chn.reader.GetTipSetState(ctx, tipKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load latest state")
@@ -121,7 +128,7 @@ func (chn *ChainStateProvider) GetActorAt(ctx context.Context, tipKey types.TipS
 }
 
 // LsActors returns a channel with actors from the latest state on the chain
-func (chn *ChainStateProvider) LsActors(ctx context.Context) (<-chan state.GetAllActorsResult, error) {
+func (chn *ChainStateReadWriter) LsActors(ctx context.Context) (<-chan state.GetAllActorsResult, error) {
 	st, err := chn.reader.GetTipSetState(ctx, chn.reader.GetHead())
 	if err != nil {
 		return nil, err
@@ -132,7 +139,7 @@ func (chn *ChainStateProvider) LsActors(ctx context.Context) (<-chan state.GetAl
 // GetActorSignature returns the signature of the given actor's given method.
 // The function signature is typically used to enable a caller to decode the
 // output of an actor method call (message).
-func (chn *ChainStateProvider) GetActorSignature(ctx context.Context, actorAddr address.Address, method string) (*exec.FunctionSignature, error) {
+func (chn *ChainStateReadWriter) GetActorSignature(ctx context.Context, actorAddr address.Address, method string) (*exec.FunctionSignature, error) {
 	if method == "" {
 		return nil, ErrNoMethod
 	}
@@ -160,4 +167,13 @@ func (chn *ChainStateProvider) GetActorSignature(ctx context.Context, actorAddr 
 	}
 
 	return export, nil
+}
+
+// SetHead sets `key` as the new head of this chain iff it exists in the nodes chain store.
+func (chn *ChainStateReadWriter) SetHead(ctx context.Context, key types.TipSetKey) error {
+	headTs, err := chn.reader.GetTipSet(key)
+	if err != nil {
+		return err
+	}
+	return chn.writer.SetHead(ctx, headTs)
 }

@@ -4,6 +4,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 
@@ -19,6 +20,7 @@ var chainCmd = &cmds.Command{
 		Tagline: "Inspect the filecoin blockchain",
 	},
 	Subcommands: map[string]*cmds.Command{
+		"export": storeExportCmd,
 		"head":   storeHeadCmd,
 		"ls":     storeLsCmd,
 		"status": storeStatusCmd,
@@ -120,5 +122,19 @@ var storeStatusCmd = &cmds.Command{
 			return err
 		}
 		return nil
+	},
+}
+
+var storeExportCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Export the chain store to a car file.",
+	},
+	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
+		f, err := os.Create("chain.car")
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		return GetPorcelainAPI(env).ChainExport(req.Context, f)
 	},
 }

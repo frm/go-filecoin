@@ -3,6 +3,7 @@ package cst
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-hamt-ipld"
@@ -160,4 +161,9 @@ func (chn *ChainStateProvider) GetActorSignature(ctx context.Context, actorAddr 
 	}
 
 	return export, nil
+}
+
+// Export does whats its called.
+func (chn *ChainStateProvider) ChainExport(ctx context.Context, out io.Writer) error {
+	return chain.Export(ctx, chn.reader, chn.messageProvider, out)
 }

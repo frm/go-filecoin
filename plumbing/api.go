@@ -189,6 +189,13 @@ func (api *API) ChainSyncHandleNewTipSet(ctx context.Context, ci *types.ChainInf
 	return api.syncer.HandleNewTipSet(ctx, ci, trusted)
 }
 
+// ChainExport exports the thain store to `out`.
+// ChainExport exports the chain store to `out`.
+// TODO say something about this being a car file or whatever.
+func (api *API) ChainExport(ctx context.Context, out io.Writer) error {
+	return api.chain.ChainExport(ctx, out)
+}
+
 // DealsIterator returns an iterator to access all deals
 func (api *API) DealsIterator() (*query.Results, error) {
 	return api.storagedeals.Iterator()

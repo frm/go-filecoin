@@ -31,8 +31,8 @@ func connect(t *testing.T, nd1, nd2 *Node) {
 }
 
 func requireMineOnce(ctx context.Context, t *testing.T, minerNode *Node) *types.Block {
-	head := minerNode.ChainReader.GetHead()
-	headTipSet, err := minerNode.ChainReader.GetTipSet(head)
+	head := minerNode.Refactor3140.ChainReader.GetHead()
+	headTipSet, err := minerNode.Refactor3140.ChainReader.GetTipSet(head)
 	require.NoError(t, err)
 	baseTS := headTipSet
 	require.NotNil(t, baseTS)
@@ -85,7 +85,7 @@ func TestBlockPropsManyNodes(t *testing.T) {
 	equal := false
 	for i := 0; i < 30; i++ {
 		for j := 1; j < numNodes; j++ {
-			otherHead := nodes[j].ChainReader.GetHead()
+			otherHead := nodes[j].Refactor3140.ChainReader.GetHead()
 			assert.NotNil(t, otherHead)
 			equal = otherHead.ToSlice()[0].Equals(nextBlk.Cid())
 			if equal {
@@ -118,7 +118,7 @@ func TestChainSync(t *testing.T) {
 	connect(t, nodes[0], nodes[1])
 	equal := false
 	for i := 0; i < 30; i++ {
-		otherHead := nodes[1].ChainReader.GetHead()
+		otherHead := nodes[1].Refactor3140.ChainReader.GetHead()
 		assert.NotNil(t, otherHead)
 		equal = otherHead.ToSlice()[0].Equals(thirdBlock.Cid())
 		if equal {
@@ -139,7 +139,7 @@ func makeNodesBlockPropTests(t *testing.T, numNodes int) (address.Address, []*No
 	)
 	seed.GiveKey(t, minerNode, 0)
 	mineraddr, ownerAddr := seed.GiveMiner(t, minerNode, 0)
-	_, err := storage.NewMiner(mineraddr, ownerAddr, &storage.FakeProver{}, types.OneKiBSectorSize, minerNode, minerNode.Repo.DealsDatastore(), minerNode.PorcelainAPI)
+	_, err := storage.NewMiner(mineraddr, ownerAddr, &storage.FakeProver{}, types.OneKiBSectorSize, minerNode, minerNode.Refactor3140.Repo.DealsDatastore(), minerNode.Refactor3140.PorcelainAPI)
 	assert.NoError(t, err)
 
 	nodes := []*Node{minerNode}

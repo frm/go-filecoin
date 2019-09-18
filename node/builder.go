@@ -276,27 +276,29 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 		Blockstore:   bs,
 		cborStore:    &ipldCborStore,
 		Clock:        nc.Clock,
-		Consensus:    nodeConsensus,
-		ChainReader:  chainStore,
-		ChainSynced:  moresync.NewLatch(1),
-		MessageStore: messageStore,
-		Syncer:       chainSyncer,
-		PowerTable:   powerTable,
 		PeerTracker:  peerTracker,
 		Fetcher:      fetcher,
 		Exchange:     bswap,
 		host:         peerHost,
-		Inbox:        inbox,
 		OfflineMode:  nc.OfflineMode,
-		Outbox:       outbox,
-		NetworkName:  network,
 		PeerHost:     peerHost,
-		Repo:         nc.Repo,
-		Wallet:       fcWallet,
 		Router:       router,
+		Refactor3140: ToSplitOrNotToSplitNode{
+			Consensus:    nodeConsensus,
+			ChainReader:  chainStore,
+			ChainSynced:  moresync.NewLatch(1),
+			MessageStore: messageStore,
+			Syncer:       chainSyncer,
+			PowerTable:   powerTable,
+			Inbox:        inbox,
+			Outbox:       outbox,
+			NetworkName:  network,
+			Repo:         nc.Repo,
+			Wallet:       fcWallet,
+		},
 	}
 
-	nd.PorcelainAPI = porcelain.New(plumbing.New(&plumbing.APIDeps{
+	nd.Refactor3140.PorcelainAPI = porcelain.New(plumbing.New(&plumbing.APIDeps{
 		Bitswap:       bswap,
 		Chain:         chainState,
 		Sync:          cst.NewChainSyncProvider(chainSyncer),
@@ -315,19 +317,19 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 	}))
 
 	// Bootstrapping network peers.
-	periodStr := nd.Repo.Config().Bootstrap.Period
+	periodStr := nd.Refactor3140.Repo.Config().Bootstrap.Period
 	period, err := time.ParseDuration(periodStr)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't parse bootstrap period %s", periodStr)
 	}
 
 	// Bootstrapper maintains connections to some subset of addresses
-	ba := nd.Repo.Config().Bootstrap.Addresses
+	ba := nd.Refactor3140.Repo.Config().Bootstrap.Addresses
 	bpi, err := net.PeerAddrsToAddrInfo(ba)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't parse bootstrap addresses [%s]", ba)
 	}
-	minPeerThreshold := nd.Repo.Config().Bootstrap.MinPeerThreshold
+	minPeerThreshold := nd.Refactor3140.Repo.Config().Bootstrap.MinPeerThreshold
 	nd.Bootstrapper = net.NewBootstrapper(bpi, nd.Host(), nd.Host().Network(), nd.Router, minPeerThreshold, period)
 
 	return nd, nil

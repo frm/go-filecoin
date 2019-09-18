@@ -91,7 +91,7 @@ func (cs *ChainSeed) GenesisInitFunc(cst *hamt.CborIpldStore, bs blockstore.Bloc
 // GiveKey gives the given key to the given node
 func (cs *ChainSeed) GiveKey(t *testing.T, nd *Node, key int) address.Address {
 	t.Helper()
-	bcks := nd.Wallet.Backends(wallet.DSBackendType)
+	bcks := nd.Refactor3140.Wallet.Backends(wallet.DSBackendType)
 	require.Len(t, bcks, 1, "expected to get exactly one datastore backend")
 
 	dsb := bcks[0].(*wallet.DSBackend)
@@ -107,11 +107,11 @@ func (cs *ChainSeed) GiveKey(t *testing.T, nd *Node, key int) address.Address {
 // GiveMiner gives the specified miner to the node. Returns the address and the owner addresss
 func (cs *ChainSeed) GiveMiner(t *testing.T, nd *Node, which int) (address.Address, address.Address) {
 	t.Helper()
-	cfg := nd.Repo.Config()
+	cfg := nd.Refactor3140.Repo.Config()
 	m := cs.info.Miners[which]
 
 	cfg.Mining.MinerAddress = m.Address
-	require.NoError(t, nd.Repo.ReplaceConfig(cfg))
+	require.NoError(t, nd.Refactor3140.Repo.ReplaceConfig(cfg))
 
 	ownerAddr, err := cs.info.Keys[m.Owner].Address()
 	require.NoError(t, err)

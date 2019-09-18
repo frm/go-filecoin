@@ -44,12 +44,12 @@ func (a *NodeAPI) Run(ctx context.Context) (client *Client, stop func()) {
 	ready := make(chan interface{})
 	terminate := make(chan os.Signal, 1)
 	go func() {
-		err := commands.RunAPIAndWait(ctx, a.node, a.node.Repo.Config().API, ready, terminate)
+		err := commands.RunAPIAndWait(ctx, a.node, a.node.Refactor3140.Repo.Config().API, ready, terminate)
 		require.NoError(a.tb, err)
 	}()
 	<-ready
 
-	addr, err := a.node.Repo.APIAddr()
+	addr, err := a.node.Refactor3140.Repo.APIAddr()
 	require.NoError(a.tb, err)
 	require.NotEmpty(a.tb, addr, "empty API address")
 

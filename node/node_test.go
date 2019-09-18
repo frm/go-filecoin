@@ -126,7 +126,7 @@ func TestNodeInit(t *testing.T) {
 
 	assert.NoError(t, nd.Start(ctx))
 
-	assert.NotEqual(t, 0, nd.ChainReader.GetHead().Len())
+	assert.NotEqual(t, 0, nd.Refactor3140.ChainReader.GetHead().Len())
 	nd.Stop(ctx)
 }
 
@@ -142,7 +142,7 @@ func TestNodeStartMining(t *testing.T) {
 	mineraddr, ownerAddr := seed.GiveMiner(t, minerNode, 0)
 	// Start mining give error for fail to get miner actor from the heaviest tipset stateroot
 	assert.Contains(t, minerNode.StartMining(ctx).Error(), "failed to get miner actor")
-	_, err := storage.NewMiner(mineraddr, ownerAddr, &storage.FakeProver{}, types.OneKiBSectorSize, minerNode, minerNode.Repo.DealsDatastore(), nil)
+	_, err := storage.NewMiner(mineraddr, ownerAddr, &storage.FakeProver{}, types.OneKiBSectorSize, minerNode, minerNode.Refactor3140.Repo.DealsDatastore(), nil)
 	assert.NoError(t, err)
 
 	assert.NoError(t, minerNode.Start(ctx))
@@ -150,11 +150,11 @@ func TestNodeStartMining(t *testing.T) {
 	t.Run("Start/Stop/Start results in a MiningScheduler that is started", func(t *testing.T) {
 		assert.NoError(t, minerNode.StartMining(ctx))
 		defer minerNode.StopMining(ctx)
-		assert.True(t, minerNode.MiningScheduler.IsStarted())
+		assert.True(t, minerNode.Refactor3140.MiningScheduler.IsStarted())
 		minerNode.StopMining(ctx)
-		assert.False(t, minerNode.MiningScheduler.IsStarted())
+		assert.False(t, minerNode.Refactor3140.MiningScheduler.IsStarted())
 		assert.NoError(t, minerNode.StartMining(ctx))
-		assert.True(t, minerNode.MiningScheduler.IsStarted())
+		assert.True(t, minerNode.Refactor3140.MiningScheduler.IsStarted())
 	})
 
 	t.Run("Start + Start gives an error message saying mining is already started", func(t *testing.T) {
@@ -167,7 +167,7 @@ func TestNodeStartMining(t *testing.T) {
 	t.Run("MiningStart sets storage fault slasher", func(t *testing.T) {
 		assert.NoError(t, minerNode.StartMining(ctx))
 		defer minerNode.StopMining(ctx)
-		assert.NotNil(t, minerNode.StorageFaultSlasher)
+		assert.NotNil(t, minerNode.Refactor3140.StorageFaultSlasher)
 	})
 }
 
@@ -220,7 +220,7 @@ func TestNodeConfig(t *testing.T) {
 	}
 
 	n := node.GenNode(t, &tno)
-	cfg := n.Repo.Config()
+	cfg := n.Refactor3140.Repo.Config()
 	_, blockTime := n.MiningTimes()
 
 	actualBlockTime := time.Duration(configBlockTime / mining.MineDelayConversionFactor)

@@ -2,7 +2,6 @@ package node
 
 import (
 	"github.com/filecoin-project/go-filecoin/message"
-	"github.com/filecoin-project/go-filecoin/net"
 	"github.com/filecoin-project/go-filecoin/porcelain"
 	"github.com/filecoin-project/go-filecoin/repo"
 	"github.com/filecoin-project/go-filecoin/version"
@@ -29,17 +28,13 @@ type ToSplitOrNotToSplitNode struct {
 	// it contains all persistent artifacts of the filecoin node
 	Repo repo.Repo
 
-	// Review: is this message queue only used for block mining?
+	// Review: I need to better understand this guy..
 	// Incoming messages for block mining.
 	Inbox *message.Inbox
 	// Messages sent and not yet mined.
 	Outbox *message.Outbox
 
 	Wallet *wallet.Wallet
-
-	// TODO: this is more on the chainsync networking
-	// Fetcher is the interface for fetching data from nodes.
-	Fetcher net.Fetcher
 
 	// TODO: this is more on the storage dealing networking side
 	// Exchange is the interface for fetching data from other nodes.

@@ -5,6 +5,7 @@ import (
 
 	"github.com/filecoin-project/go-filecoin/chain"
 	"github.com/filecoin-project/go-filecoin/consensus"
+	"github.com/filecoin-project/go-filecoin/net"
 	"github.com/filecoin-project/go-filecoin/net/pubsub"
 	"github.com/filecoin-project/go-filecoin/util/moresync"
 )
@@ -26,4 +27,7 @@ type ChainSubmodule struct {
 	// It serves as a barrier to be released when the initial chain sync has completed.
 	// Services which depend on a more-or-less synced chain can wait for this before starting up.
 	ChainSynced *moresync.Latch
+	// Review: should we have this on chain or is a bit more generic?
+	// Fetcher is the interface for fetching data from nodes.
+	Fetcher net.Fetcher
 }

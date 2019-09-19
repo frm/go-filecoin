@@ -285,7 +285,6 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 			blockservice: bservice,
 			Blockstore:   bs,
 			cborStore:    &ipldCborStore,
-			Fetcher:      fetcher,
 			Exchange:     bswap,
 			Inbox:        inbox,
 			Outbox:       outbox,
@@ -293,6 +292,7 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 			Wallet:       fcWallet,
 		},
 		Chain3140: ChainSubmodule{
+			Fetcher:      fetcher,
 			Consensus:    nodeConsensus,
 			ChainReader:  chainStore,
 			ChainSynced:  moresync.NewLatch(1),

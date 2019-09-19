@@ -63,6 +63,13 @@ type ChainSubmodule struct {
 	ChainSynced *moresync.Latch
 }
 
+// StorageProtocolSubmodule enhances the `Node` with storage protocol capabilities.
+type StorageProtocolSubmodule struct {
+	StorageAPI *storage.API
+	// Storage Market Interfaces
+	StorageMiner *storage.Miner
+}
+
 // ToSplitOrNotToSplitNode is part of an ongoing refactor to cleanup `node.Node`.
 //
 // TODO: complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
@@ -71,7 +78,6 @@ type ToSplitOrNotToSplitNode struct {
 
 	PorcelainAPI *porcelain.API
 	RetrievalAPI *retrieval.API
-	StorageAPI   *storage.API
 
 	// Review: is this message queue only used for block mining?
 	// Incoming messages for block mining.
@@ -81,11 +87,7 @@ type ToSplitOrNotToSplitNode struct {
 
 	Wallet *wallet.Wallet
 
-	// Storage Market Interfaces
-	StorageMiner *storage.Miner
-
 	StorageFaultSlasher storageFaultSlasher
-
 	// Retrieval Interfaces
 	RetrievalMiner *retrieval.Miner
 

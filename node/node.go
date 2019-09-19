@@ -71,6 +71,8 @@ type Node struct {
 	Chain3140 ChainSubmodule
 
 	BlockMining3140 BlockMiningSubmodule
+
+	StorageProtocol3140 StorageProtocolSubmodule
 }
 
 // Start boots up the node.
@@ -302,8 +304,8 @@ func (node *Node) handleNewChainHeads(ctx context.Context, prevHead types.TipSet
 				log.Error(err)
 			}
 
-			if node.Refactor3140.StorageMiner != nil {
-				if _, err := node.Refactor3140.StorageMiner.OnNewHeaviestTipSet(newHead); err != nil {
+			if node.StorageProtocol3140.StorageMiner != nil {
+				if _, err := node.StorageProtocol3140.StorageMiner.OnNewHeaviestTipSet(newHead); err != nil {
 					log.Error(err)
 				}
 			}
@@ -420,12 +422,12 @@ func (node *Node) SetupMining(ctx context.Context) error {
 	}
 
 	// ensure we have a storage miner
-	if node.Refactor3140.StorageMiner == nil {
+	if node.StorageProtocol3140.StorageMiner == nil {
 		storageMiner, _, err := initStorageMinerForNode(ctx, node)
 		if err != nil {
 			return errors.Wrap(err, "failed to initialize storage miner")
 		}
-		node.Refactor3140.StorageMiner = storageMiner
+		node.StorageProtocol3140.StorageMiner = storageMiner
 	}
 
 	return nil
@@ -524,7 +526,7 @@ func (node *Node) StartMining(ctx context.Context) error {
 						continue
 					}
 
-					node.Refactor3140.StorageMiner.OnCommitmentSent(val, msgCid, nil)
+					node.StorageProtocol3140.StorageMiner.OnCommitmentSent(val, msgCid, nil)
 				}
 			case <-miningCtx.Done():
 				return
@@ -682,7 +684,7 @@ func (node *Node) StopMining(ctx context.Context) {
 		node.BlockMining3140.miningDoneWg.Wait()
 	}
 
-	// TODO: stop node.Refactor3140.StorageMiner
+	// TODO: stop node.StorageProtocol3140.StorageMiner
 }
 
 func (node *Node) handleSubscription(ctx context.Context, sub pubsub.Subscription, handler pubSubHandler) {
@@ -730,7 +732,7 @@ func (node *Node) setupProtocols() error {
 	// set up storage client and api
 	smc := storage.NewClient(node.host, node.Refactor3140.PorcelainAPI)
 	smcAPI := storage.NewAPI(smc)
-	node.Refactor3140.StorageAPI = &smcAPI
+	node.StorageProtocol3140.StorageAPI = &smcAPI
 	return nil
 }
 

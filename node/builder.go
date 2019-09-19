@@ -276,9 +276,9 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 		OfflineMode: nc.OfflineMode,
 		host:        peerHost,
 		PeerHost:    peerHost,
-		Router:      router,
 		Network3140: NetworkSubmodule{
 			PeerTracker: peerTracker,
+			Router:      router,
 		},
 		Refactor3140: ToSplitOrNotToSplitNode{
 			blockservice: bservice,
@@ -334,7 +334,7 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 		return nil, errors.Wrapf(err, "couldn't parse bootstrap addresses [%s]", ba)
 	}
 	minPeerThreshold := nd.Refactor3140.Repo.Config().Bootstrap.MinPeerThreshold
-	nd.Network3140.Bootstrapper = net.NewBootstrapper(bpi, nd.Host(), nd.Host().Network(), nd.Router, minPeerThreshold, period)
+	nd.Network3140.Bootstrapper = net.NewBootstrapper(bpi, nd.Host(), nd.Host().Network(), nd.Network3140.Router, minPeerThreshold, period)
 
 	return nd, nil
 }

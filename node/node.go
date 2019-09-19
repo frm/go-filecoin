@@ -14,7 +14,6 @@ import (
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/go-filecoin/address"
@@ -53,11 +52,10 @@ type Node struct {
 	host     host.Host
 	PeerHost host.Host
 
-	// Router is a router from IPFS
-	Router routing.Routing
-
 	// Network Fields
-	BlockSub   pubsub.Subscription
+	// XXX: this is part of chain
+	BlockSub pubsub.Subscription
+	// XXX: this is part of the block-miner
 	MessageSub pubsub.Subscription
 
 	// OfflineMode, when true, disables libp2p

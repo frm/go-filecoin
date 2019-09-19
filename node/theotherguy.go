@@ -21,11 +21,14 @@ import (
 //
 // TODO: clean this up to complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
 type ToSplitOrNotToSplitNode struct {
+	// Review: I guess this is either Node or a subsystem for managing protocols
 	VersionTable version.ProtocolVersionTable
 
+	// Review: candidate to be moved back to Node
 	PorcelainAPI *porcelain.API
 	// Repo is the repo this node was created with
 	// it contains all persistent artifacts of the filecoin node
+	// Review: candidate to be moved back to Node
 	Repo repo.Repo
 
 	// Review: I need to better understand this guy..
@@ -34,15 +37,20 @@ type ToSplitOrNotToSplitNode struct {
 	// Messages sent and not yet mined.
 	Outbox *message.Outbox
 
+	// Review: is this its own submodule?
 	Wallet *wallet.Wallet
 
-	// TODO: this is more on the storage dealing networking side
+	// Review: is this only used for storage deals or retrieval too?
+	//         if its only storage -> move to StorageSubmodule
+	//         if its both, move to SectorBuilderSubmodule?
 	// Exchange is the interface for fetching data from other nodes.
 	Exchange exchange.Interface
+
+	// Review: where do we place this guy?
 	// Blockservice is a higher level interface for fetching data
 	blockservice bserv.BlockService
 
-	// Review: check what this guy is about exactly
+	// Review: where do we place this guy?
 	// Blockstore is the un-networked blocks interface
 	Blockstore bstore.Blockstore
 

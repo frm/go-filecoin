@@ -79,6 +79,12 @@ type RetrievalProtocolSubmodule struct {
 	RetrievalMiner *retrieval.Miner
 }
 
+// SectorBuilderSubmodule enhances the `Node` with sector storage capabilities.
+type SectorBuilderSubmodule struct {
+	// SectorBuilder is used by the miner to fill and seal sectors.
+	sectorBuilder sectorbuilder.SectorBuilder
+}
+
 // ToSplitOrNotToSplitNode is part of an ongoing refactor to cleanup `node.Node`.
 //
 // TODO: complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
@@ -102,9 +108,6 @@ type ToSplitOrNotToSplitNode struct {
 	// Repo is the repo this node was created with
 	// it contains all persistent artifacts of the filecoin node
 	Repo repo.Repo
-
-	// SectorBuilder is used by the miner to fill and seal sectors.
-	sectorBuilder sectorbuilder.SectorBuilder
 
 	// TODO: network networking
 	HelloSvc     *hello.Handler

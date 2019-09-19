@@ -75,6 +75,8 @@ type Node struct {
 	StorageProtocol3140 StorageProtocolSubmodule
 
 	RetrievalProtocol3140 RetrievalProtocolSubmodule
+
+	SectorBuilder3140 SectorBuilderSubmodule
 }
 
 // Start boots up the node.
@@ -246,7 +248,7 @@ func (node *Node) setupMining(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize sector builder")
 	}
-	node.Refactor3140.sectorBuilder = sectorBuilder
+	node.SectorBuilder3140.sectorBuilder = sectorBuilder
 
 	return nil
 }
@@ -350,7 +352,7 @@ func (node *Node) Stop(ctx context.Context) {
 		if err := node.SectorBuilder().Close(); err != nil {
 			fmt.Printf("error closing sector builder: %s\n", err)
 		}
-		node.Refactor3140.sectorBuilder = nil
+		node.SectorBuilder3140.sectorBuilder = nil
 	}
 
 	if err := node.Host().Close(); err != nil {
@@ -546,7 +548,7 @@ func (node *Node) StartMining(ctx context.Context) error {
 				case <-time.After(time.Duration(node.Refactor3140.Repo.Config().Mining.AutoSealIntervalSeconds) * time.Second):
 					log.Info("auto-seal has been triggered")
 					if err := node.SectorBuilder().SealAllStagedSectors(miningCtx); err != nil {
-						log.Errorf("scheduler received error from node.Refactor3140.sectorBuilder.SealAllStagedSectors (%s) - exiting", err.Error())
+						log.Errorf("scheduler received error from node.SectorBuilder3140.sectorBuilder.SealAllStagedSectors (%s) - exiting", err.Error())
 						return
 					}
 				}
@@ -820,7 +822,7 @@ func (node *Node) Host() host.Host {
 
 // SectorBuilder returns the nodes sectorBuilder.
 func (node *Node) SectorBuilder() sectorbuilder.SectorBuilder {
-	return node.Refactor3140.sectorBuilder
+	return node.SectorBuilder3140.sectorBuilder
 }
 
 // BlockService returns the nodes blockservice.

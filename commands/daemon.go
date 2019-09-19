@@ -157,7 +157,7 @@ func RunAPIAndWait(ctx context.Context, nd *node.Node, config *config.APIConfig,
 		ctx:            ctx,
 		inspectorAPI:   NewInspectorAPI(nd.Refactor3140.Repo),
 		porcelainAPI:   nd.Refactor3140.PorcelainAPI,
-		retrievalAPI:   nd.Refactor3140.RetrievalAPI,
+		retrievalAPI:   nd.RetrievalProtocol3140.RetrievalAPI,
 		storageAPI:     nd.StorageProtocol3140.StorageAPI,
 	}
 

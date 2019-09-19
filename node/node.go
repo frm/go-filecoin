@@ -73,6 +73,8 @@ type Node struct {
 	BlockMining3140 BlockMiningSubmodule
 
 	StorageProtocol3140 StorageProtocolSubmodule
+
+	RetrievalProtocol3140 RetrievalProtocolSubmodule
 }
 
 // Start boots up the node.
@@ -104,7 +106,7 @@ func (node *Node) Start(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to set up protocols:")
 	}
-	node.Refactor3140.RetrievalMiner = retrieval.NewMiner(node)
+	node.RetrievalProtocol3140.RetrievalMiner = retrieval.NewMiner(node)
 
 	var syncCtx context.Context
 	syncCtx, node.Chain3140.cancelChainSync = context.WithCancel(context.Background())
@@ -727,7 +729,7 @@ func (node *Node) setupProtocols() error {
 
 	// set up retrieval client and api
 	retapi := retrieval.NewAPI(retrieval.NewClient(node.host, node.Refactor3140.PorcelainAPI))
-	node.Refactor3140.RetrievalAPI = &retapi
+	node.RetrievalProtocol3140.RetrievalAPI = &retapi
 
 	// set up storage client and api
 	smc := storage.NewClient(node.host, node.Refactor3140.PorcelainAPI)

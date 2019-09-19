@@ -63,11 +63,20 @@ type ChainSubmodule struct {
 	ChainSynced *moresync.Latch
 }
 
-// StorageProtocolSubmodule enhances the `Node` with storage protocol capabilities.
+// StorageProtocolSubmodule enhances the `Node` with "Storage" protocol capabilities.
 type StorageProtocolSubmodule struct {
 	StorageAPI *storage.API
+
 	// Storage Market Interfaces
 	StorageMiner *storage.Miner
+}
+
+// RetrievalProtocolSubmodule enhances the `Node` with "Retrieval" protocol capabilities.
+type RetrievalProtocolSubmodule struct {
+	RetrievalAPI *retrieval.API
+
+	// Retrieval Interfaces
+	RetrievalMiner *retrieval.Miner
 }
 
 // ToSplitOrNotToSplitNode is part of an ongoing refactor to cleanup `node.Node`.
@@ -77,7 +86,6 @@ type ToSplitOrNotToSplitNode struct {
 	VersionTable version.ProtocolVersionTable
 
 	PorcelainAPI *porcelain.API
-	RetrievalAPI *retrieval.API
 
 	// Review: is this message queue only used for block mining?
 	// Incoming messages for block mining.
@@ -88,8 +96,6 @@ type ToSplitOrNotToSplitNode struct {
 	Wallet *wallet.Wallet
 
 	StorageFaultSlasher storageFaultSlasher
-	// Retrieval Interfaces
-	RetrievalMiner *retrieval.Miner
 
 	// Data Storage Fields
 

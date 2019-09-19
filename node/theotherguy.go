@@ -85,6 +85,10 @@ type SectorBuilderSubmodule struct {
 	sectorBuilder sectorbuilder.SectorBuilder
 }
 
+type FaultSlasherSubmodule struct {
+	StorageFaultSlasher storageFaultSlasher
+}
+
 // ToSplitOrNotToSplitNode is part of an ongoing refactor to cleanup `node.Node`.
 //
 // TODO: complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
@@ -100,8 +104,6 @@ type ToSplitOrNotToSplitNode struct {
 	Outbox *message.Outbox
 
 	Wallet *wallet.Wallet
-
-	StorageFaultSlasher storageFaultSlasher
 
 	// Data Storage Fields
 

@@ -77,6 +77,8 @@ type Node struct {
 	RetrievalProtocol3140 RetrievalProtocolSubmodule
 
 	SectorBuilder3140 SectorBuilderSubmodule
+
+	FaultSlasher3140 FaultSlasherSubmodule
 }
 
 // Start boots up the node.
@@ -313,8 +315,8 @@ func (node *Node) handleNewChainHeads(ctx context.Context, prevHead types.TipSet
 					log.Error(err)
 				}
 			}
-			if node.Refactor3140.StorageFaultSlasher != nil {
-				if err := node.Refactor3140.StorageFaultSlasher.OnNewHeaviestTipSet(ctx, newHead); err != nil {
+			if node.FaultSlasher3140.StorageFaultSlasher != nil {
+				if err := node.FaultSlasher3140.StorageFaultSlasher.OnNewHeaviestTipSet(ctx, newHead); err != nil {
 					log.Error(err)
 				}
 			}
@@ -478,7 +480,7 @@ func (node *Node) StartMining(ctx context.Context) error {
 	go node.handleNewMiningOutput(miningCtx, outCh)
 
 	// initialize the storage fault slasher
-	node.Refactor3140.StorageFaultSlasher = storage.NewFaultSlasher(
+	node.FaultSlasher3140.StorageFaultSlasher = storage.NewFaultSlasher(
 		node.Refactor3140.PorcelainAPI,
 		node.Refactor3140.Outbox,
 		storage.DefaultFaultSlasherGasPrice,

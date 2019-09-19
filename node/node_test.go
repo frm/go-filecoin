@@ -167,7 +167,7 @@ func TestNodeStartMining(t *testing.T) {
 	t.Run("MiningStart sets storage fault slasher", func(t *testing.T) {
 		assert.NoError(t, minerNode.StartMining(ctx))
 		defer minerNode.StopMining(ctx)
-		assert.NotNil(t, minerNode.Refactor3140.StorageFaultSlasher)
+		assert.NotNil(t, minerNode.FaultSlasher3140.StorageFaultSlasher)
 	})
 }
 

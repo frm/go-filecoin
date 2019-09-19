@@ -79,6 +79,8 @@ type Node struct {
 	SectorBuilder3140 SectorBuilderSubmodule
 
 	FaultSlasher3140 FaultSlasherSubmodule
+
+	HelloProtocol3140 HelloProtocolSubmodule
 }
 
 // Start boots up the node.
@@ -152,11 +154,11 @@ func (node *Node) Start(ctx context.Context) error {
 			// See https://github.com/filecoin-project/go-filecoin/issues/1105
 			node.Chain3140.ChainSynced.Done()
 		}
-		node.Refactor3140.HelloSvc = hello.New(node.Host(), node.Chain3140.ChainReader.GenesisCid(), helloCallback, node.Refactor3140.PorcelainAPI.ChainHead, node.Chain3140.NetworkName)
+		node.HelloProtocol3140.HelloSvc = hello.New(node.Host(), node.Chain3140.ChainReader.GenesisCid(), helloCallback, node.Refactor3140.PorcelainAPI.ChainHead, node.Chain3140.NetworkName)
 
 		// register the update function on the peer tracker now that we have a hello service
 		node.Refactor3140.PeerTracker.SetUpdateFn(func(ctx context.Context, p peer.ID) (*types.ChainInfo, error) {
-			hmsg, err := node.Refactor3140.HelloSvc.ReceiveHello(ctx, p)
+			hmsg, err := node.HelloProtocol3140.HelloSvc.ReceiveHello(ctx, p)
 			if err != nil {
 				return nil, err
 			}

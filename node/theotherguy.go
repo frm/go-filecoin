@@ -85,8 +85,14 @@ type SectorBuilderSubmodule struct {
 	sectorBuilder sectorbuilder.SectorBuilder
 }
 
+// FaultSlasherSubmodule enhances the `Node` with storage slashing capabilities.
 type FaultSlasherSubmodule struct {
 	StorageFaultSlasher storageFaultSlasher
+}
+
+// HelloProtocolSubmodule enhances the `Node` with "Hello" protocol capabilities.
+type HelloProtocolSubmodule struct {
+	HelloSvc *hello.Handler
 }
 
 // ToSplitOrNotToSplitNode is part of an ongoing refactor to cleanup `node.Node`.
@@ -112,7 +118,6 @@ type ToSplitOrNotToSplitNode struct {
 	Repo repo.Repo
 
 	// TODO: network networking
-	HelloSvc     *hello.Handler
 	Bootstrapper *net.Bootstrapper
 	// PeerTracker maintains a list of peers good for fetching.
 	PeerTracker *net.PeerTracker

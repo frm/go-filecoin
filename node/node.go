@@ -52,10 +52,6 @@ type Node struct {
 	host     host.Host
 	PeerHost host.Host
 
-	// Network Fields
-	// XXX: this is part of the block-miner
-	MessageSub pubsub.Subscription
-
 	// OfflineMode, when true, disables libp2p
 	OfflineMode bool
 
@@ -188,7 +184,7 @@ func (node *Node) Start(ctx context.Context) error {
 		// https://github.com/filecoin-project/go-filecoin/issues/2145.
 		// This is blocked by https://github.com/filecoin-project/go-filecoin/issues/2959, which
 		// is necessary for message_propagate_test to start mining before testing this behaviour.
-		node.MessageSub, err = node.pubsubscribe(syncCtx, net.MessageTopic(node.Chain3140.NetworkName), node.processMessage)
+		node.BlockMining3140.MessageSub, err = node.pubsubscribe(syncCtx, net.MessageTopic(node.Chain3140.NetworkName), node.processMessage)
 		if err != nil {
 			return err
 		}
@@ -336,9 +332,9 @@ func (node *Node) cancelSubscriptions() {
 		node.Chain3140.BlockSub = nil
 	}
 
-	if node.MessageSub != nil {
-		node.MessageSub.Cancel()
-		node.MessageSub = nil
+	if node.BlockMining3140.MessageSub != nil {
+		node.BlockMining3140.MessageSub.Cancel()
+		node.BlockMining3140.MessageSub = nil
 	}
 }
 

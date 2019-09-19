@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/filecoin-project/go-filecoin/mining"
+	"github.com/filecoin-project/go-filecoin/net/pubsub"
 	"github.com/filecoin-project/go-filecoin/protocol/block"
 )
 
@@ -23,4 +24,7 @@ type BlockMiningSubmodule struct {
 		isMining bool
 	}
 	miningDoneWg *sync.WaitGroup
+
+	// Network Fields
+	MessageSub pubsub.Subscription
 }

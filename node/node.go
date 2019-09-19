@@ -68,6 +68,8 @@ type Node struct {
 
 	Refactor3140 ToSplitOrNotToSplitNode
 
+	Network3140 NetworkSubmodule
+
 	Chain3140 ChainSubmodule
 
 	BlockMining3140 BlockMiningSubmodule
@@ -126,14 +128,14 @@ func (node *Node) Start(ctx context.Context) error {
 
 	if !node.OfflineMode {
 		// Start bootstrapper.
-		node.Refactor3140.Bootstrapper.Start(context.Background())
+		node.Network3140.Bootstrapper.Start(context.Background())
 
 		// Register peer tracker disconnect function with network.
-		net.TrackerRegisterDisconnect(node.host.Network(), node.Refactor3140.PeerTracker)
+		net.TrackerRegisterDisconnect(node.host.Network(), node.Network3140.PeerTracker)
 
 		// Start up 'hello' handshake service
 		helloCallback := func(ci *types.ChainInfo) {
-			node.Refactor3140.PeerTracker.Track(ci)
+			node.Network3140.PeerTracker.Track(ci)
 			// TODO Implement principled trusting of ChainInfo's
 			// to address in #2674
 			trusted := true
@@ -157,7 +159,7 @@ func (node *Node) Start(ctx context.Context) error {
 		node.HelloProtocol3140.HelloSvc = hello.New(node.Host(), node.Chain3140.ChainReader.GenesisCid(), helloCallback, node.Refactor3140.PorcelainAPI.ChainHead, node.Chain3140.NetworkName)
 
 		// register the update function on the peer tracker now that we have a hello service
-		node.Refactor3140.PeerTracker.SetUpdateFn(func(ctx context.Context, p peer.ID) (*types.ChainInfo, error) {
+		node.Network3140.PeerTracker.SetUpdateFn(func(ctx context.Context, p peer.ID) (*types.ChainInfo, error) {
 			hmsg, err := node.HelloProtocol3140.HelloSvc.ReceiveHello(ctx, p)
 			if err != nil {
 				return nil, err
@@ -367,7 +369,7 @@ func (node *Node) Stop(ctx context.Context) {
 		fmt.Printf("error closing repo: %s\n", err)
 	}
 
-	node.Refactor3140.Bootstrapper.Stop()
+	node.Network3140.Bootstrapper.Stop()
 
 	fmt.Println("stopping filecoin :(")
 }

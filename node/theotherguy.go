@@ -37,11 +37,6 @@ type ToSplitOrNotToSplitNode struct {
 
 	Wallet *wallet.Wallet
 
-	// TODO: network networking
-	Bootstrapper *net.Bootstrapper
-	// PeerTracker maintains a list of peers good for fetching.
-	PeerTracker *net.PeerTracker
-
 	// TODO: this is more on the chainsync networking
 	// Fetcher is the interface for fetching data from nodes.
 	Fetcher net.Fetcher

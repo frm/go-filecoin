@@ -7,6 +7,8 @@ import (
 
 // NetworkSubmodule enhances the `Node` with networking capabilities.
 type NetworkSubmodule struct {
+	NetworkName string
+
 	Bootstrapper *net.Bootstrapper
 
 	// PeerTracker maintains a list of peers good for fetching.

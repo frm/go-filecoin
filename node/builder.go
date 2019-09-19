@@ -277,6 +277,7 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 		host:        peerHost,
 		PeerHost:    peerHost,
 		Network3140: NetworkSubmodule{
+			NetworkName: network,
 			PeerTracker: peerTracker,
 			Router:      router,
 		},
@@ -298,7 +299,6 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 			MessageStore: messageStore,
 			Syncer:       chainSyncer,
 			PowerTable:   powerTable,
-			NetworkName:  network,
 		},
 	}
 

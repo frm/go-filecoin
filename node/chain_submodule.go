@@ -11,8 +11,6 @@ import (
 
 // ChainSubmodule enhances the `Node` with chain capabilities.
 type ChainSubmodule struct {
-	NetworkName string
-	// XXX: this is part of chain
 	BlockSub     pubsub.Subscription
 	Consensus    consensus.Protocol
 	ChainReader  nodeChainReader

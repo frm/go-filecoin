@@ -33,7 +33,7 @@ func (node *Node) AddNewBlock(ctx context.Context, b *types.Block) (err error) {
 		return err
 	}
 
-	return node.Refactor3140.PorcelainAPI.PubSubPublish(net.BlockTopic(node.Chain3140.NetworkName), b.ToNode().RawData())
+	return node.Refactor3140.PorcelainAPI.PubSubPublish(net.BlockTopic(node.Network3140.NetworkName), b.ToNode().RawData())
 }
 
 func (node *Node) processBlock(ctx context.Context, pubSubMsg pubsub.Message) (err error) {

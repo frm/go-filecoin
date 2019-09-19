@@ -148,7 +148,7 @@ func (node *Node) Start(ctx context.Context) error {
 			// See https://github.com/filecoin-project/go-filecoin/issues/1105
 			node.Chain3140.ChainSynced.Done()
 		}
-		node.HelloProtocol3140.HelloSvc = hello.New(node.Host(), node.Chain3140.ChainReader.GenesisCid(), helloCallback, node.Refactor3140.PorcelainAPI.ChainHead, node.Chain3140.NetworkName)
+		node.HelloProtocol3140.HelloSvc = hello.New(node.Host(), node.Chain3140.ChainReader.GenesisCid(), helloCallback, node.Refactor3140.PorcelainAPI.ChainHead, node.Network3140.NetworkName)
 
 		// register the update function on the peer tracker now that we have a hello service
 		node.Network3140.PeerTracker.SetUpdateFn(func(ctx context.Context, p peer.ID) (*types.ChainInfo, error) {
@@ -172,7 +172,7 @@ func (node *Node) Start(ctx context.Context) error {
 
 			if syncCtx.Err() == nil {
 				// Subscribe to block pubsub topic to learn about new chain heads.
-				node.Chain3140.BlockSub, err = node.pubsubscribe(syncCtx, net.BlockTopic(node.Chain3140.NetworkName), node.processBlock)
+				node.Chain3140.BlockSub, err = node.pubsubscribe(syncCtx, net.BlockTopic(node.Network3140.NetworkName), node.processBlock)
 				if err != nil {
 					log.Error(err)
 				}
@@ -184,7 +184,7 @@ func (node *Node) Start(ctx context.Context) error {
 		// https://github.com/filecoin-project/go-filecoin/issues/2145.
 		// This is blocked by https://github.com/filecoin-project/go-filecoin/issues/2959, which
 		// is necessary for message_propagate_test to start mining before testing this behaviour.
-		node.BlockMining3140.MessageSub, err = node.pubsubscribe(syncCtx, net.MessageTopic(node.Chain3140.NetworkName), node.processMessage)
+		node.BlockMining3140.MessageSub, err = node.pubsubscribe(syncCtx, net.MessageTopic(node.Network3140.NetworkName), node.processMessage)
 		if err != nil {
 			return err
 		}

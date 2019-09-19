@@ -68,6 +68,8 @@ type Node struct {
 
 	Refactor3140 ToSplitOrNotToSplitNode
 
+	Chain3140 ChainSubmodule
+
 	BlockMining3140 BlockMiningSubmodule
 }
 
@@ -82,7 +84,7 @@ func (node *Node) Start(ctx context.Context) error {
 	}
 
 	var err error
-	if err = node.Refactor3140.ChainReader.Load(ctx); err != nil {
+	if err = node.Chain3140.ChainReader.Load(ctx); err != nil {
 		return err
 	}
 
@@ -103,7 +105,7 @@ func (node *Node) Start(ctx context.Context) error {
 	node.Refactor3140.RetrievalMiner = retrieval.NewMiner(node)
 
 	var syncCtx context.Context
-	syncCtx, node.Refactor3140.cancelChainSync = context.WithCancel(context.Background())
+	syncCtx, node.Chain3140.cancelChainSync = context.WithCancel(context.Background())
 
 	// Wire up propagation of new chain heads from the chain store to other components.
 	head, err := node.Refactor3140.PorcelainAPI.ChainHead()
@@ -125,7 +127,7 @@ func (node *Node) Start(ctx context.Context) error {
 			// TODO Implement principled trusting of ChainInfo's
 			// to address in #2674
 			trusted := true
-			err := node.Refactor3140.Syncer.HandleNewTipSet(context.Background(), ci, trusted)
+			err := node.Chain3140.Syncer.HandleNewTipSet(context.Background(), ci, trusted)
 			if err != nil {
 				log.Infof("error handling tipset from hello %s: %s", ci, err)
 				return
@@ -140,9 +142,9 @@ func (node *Node) Start(ctx context.Context) error {
 			// sync done until it's caught up enough that it will accept blocks from pubsub.
 			// This might require additional rounds of hello.
 			// See https://github.com/filecoin-project/go-filecoin/issues/1105
-			node.Refactor3140.ChainSynced.Done()
+			node.Chain3140.ChainSynced.Done()
 		}
-		node.Refactor3140.HelloSvc = hello.New(node.Host(), node.Refactor3140.ChainReader.GenesisCid(), helloCallback, node.Refactor3140.PorcelainAPI.ChainHead, node.Refactor3140.NetworkName)
+		node.Refactor3140.HelloSvc = hello.New(node.Host(), node.Chain3140.ChainReader.GenesisCid(), helloCallback, node.Refactor3140.PorcelainAPI.ChainHead, node.Chain3140.NetworkName)
 
 		// register the update function on the peer tracker now that we have a hello service
 		node.Refactor3140.PeerTracker.SetUpdateFn(func(ctx context.Context, p peer.ID) (*types.ChainInfo, error) {
@@ -155,10 +157,10 @@ func (node *Node) Start(ctx context.Context) error {
 
 		// Subscribe to block pubsub after the initial sync completes.
 		go func() {
-			node.Refactor3140.ChainSynced.Wait()
+			node.Chain3140.ChainSynced.Wait()
 
 			// Log some information about the synced chain
-			if ts, err := node.Refactor3140.ChainReader.GetTipSet(node.Refactor3140.ChainReader.GetHead()); err == nil {
+			if ts, err := node.Chain3140.ChainReader.GetTipSet(node.Chain3140.ChainReader.GetHead()); err == nil {
 				if height, err := ts.Height(); err == nil {
 					log.Infof("initial chain sync complete! chain head height %d, tipset key %s, blocks %s\n", height, ts.Key(), ts.String())
 				}
@@ -166,7 +168,7 @@ func (node *Node) Start(ctx context.Context) error {
 
 			if syncCtx.Err() == nil {
 				// Subscribe to block pubsub topic to learn about new chain heads.
-				node.BlockSub, err = node.pubsubscribe(syncCtx, net.BlockTopic(node.Refactor3140.NetworkName), node.processBlock)
+				node.BlockSub, err = node.pubsubscribe(syncCtx, net.BlockTopic(node.Chain3140.NetworkName), node.processBlock)
 				if err != nil {
 					log.Error(err)
 				}
@@ -178,7 +180,7 @@ func (node *Node) Start(ctx context.Context) error {
 		// https://github.com/filecoin-project/go-filecoin/issues/2145.
 		// This is blocked by https://github.com/filecoin-project/go-filecoin/issues/2959, which
 		// is necessary for message_propagate_test to start mining before testing this behaviour.
-		node.MessageSub, err = node.pubsubscribe(syncCtx, net.MessageTopic(node.Refactor3140.NetworkName), node.processMessage)
+		node.MessageSub, err = node.pubsubscribe(syncCtx, net.MessageTopic(node.Chain3140.NetworkName), node.processMessage)
 		if err != nil {
 			return err
 		}
@@ -216,14 +218,14 @@ func (node *Node) setupHeartbeatServices(ctx context.Context) error {
 
 	// start the primary heartbeat service
 	if len(node.Refactor3140.Repo.Config().Heartbeat.BeatTarget) > 0 {
-		hbs := metrics.NewHeartbeatService(node.Host(), node.Refactor3140.ChainReader.GenesisCid(), node.Refactor3140.Repo.Config().Heartbeat, node.Refactor3140.PorcelainAPI.ChainHead, metrics.WithMinerAddressGetter(mag))
+		hbs := metrics.NewHeartbeatService(node.Host(), node.Chain3140.ChainReader.GenesisCid(), node.Refactor3140.Repo.Config().Heartbeat, node.Refactor3140.PorcelainAPI.ChainHead, metrics.WithMinerAddressGetter(mag))
 		go hbs.Start(ctx)
 	}
 
 	// check if we want to connect to an alert service. An alerting service is a heartbeat
 	// service that can trigger alerts based on the contents of heatbeats.
 	if alertTarget := os.Getenv("FIL_HEARTBEAT_ALERTS"); len(alertTarget) > 0 {
-		ahbs := metrics.NewHeartbeatService(node.Host(), node.Refactor3140.ChainReader.GenesisCid(), &config.HeartbeatConfig{
+		ahbs := metrics.NewHeartbeatService(node.Host(), node.Chain3140.ChainReader.GenesisCid(), &config.HeartbeatConfig{
 			BeatTarget:      alertTarget,
 			BeatPeriod:      "10s",
 			ReconnectPeriod: "10s",
@@ -281,12 +283,12 @@ func (node *Node) handleNewMiningOutput(ctx context.Context, miningOutCh <-chan 
 }
 
 func (node *Node) handleNewChainHeads(ctx context.Context, prevHead types.TipSet) {
-	node.Refactor3140.HeaviestTipSetCh = node.Refactor3140.ChainReader.HeadEvents().Sub(chain.NewHeadTopic)
-	handler := message.NewHeadHandler(node.Refactor3140.Inbox, node.Refactor3140.Outbox, node.Refactor3140.ChainReader, prevHead)
+	node.Chain3140.HeaviestTipSetCh = node.Chain3140.ChainReader.HeadEvents().Sub(chain.NewHeadTopic)
+	handler := message.NewHeadHandler(node.Refactor3140.Inbox, node.Refactor3140.Outbox, node.Chain3140.ChainReader, prevHead)
 
 	for {
 		select {
-		case ts, ok := <-node.Refactor3140.HeaviestTipSetCh:
+		case ts, ok := <-node.Chain3140.HeaviestTipSetCh:
 			if !ok {
 				return
 			}
@@ -317,8 +319,8 @@ func (node *Node) handleNewChainHeads(ctx context.Context, prevHead types.TipSet
 }
 
 func (node *Node) cancelSubscriptions() {
-	if node.Refactor3140.cancelChainSync != nil {
-		node.Refactor3140.cancelChainSync()
+	if node.Chain3140.cancelChainSync != nil {
+		node.Chain3140.cancelChainSync()
 	}
 
 	if node.BlockSub != nil {
@@ -334,11 +336,11 @@ func (node *Node) cancelSubscriptions() {
 
 // Stop initiates the shutdown of the node.
 func (node *Node) Stop(ctx context.Context) {
-	node.Refactor3140.ChainReader.HeadEvents().Unsub(node.Refactor3140.HeaviestTipSetCh)
+	node.Chain3140.ChainReader.HeadEvents().Unsub(node.Chain3140.HeaviestTipSetCh)
 	node.StopMining(ctx)
 
 	node.cancelSubscriptions()
-	node.Refactor3140.ChainReader.Stop()
+	node.Chain3140.ChainReader.Stop()
 
 	if node.SectorBuilder() != nil {
 		if err := node.SectorBuilder().Close(); err != nil {
@@ -494,7 +496,7 @@ func (node *Node) StartMining(ctx context.Context) error {
 
 					// look up miner worker address. If this fails, something is really wrong
 					// so we bail and don't commit sectors.
-					workerAddr, err := node.Refactor3140.PorcelainAPI.MinerGetWorkerAddress(miningCtx, minerAddr, node.Refactor3140.ChainReader.GetHead())
+					workerAddr, err := node.Refactor3140.PorcelainAPI.MinerGetWorkerAddress(miningCtx, minerAddr, node.Chain3140.ChainReader.GetHead())
 					if err != nil {
 						log.Errorf("failed to get worker address %s", err)
 						continue
@@ -641,7 +643,7 @@ func initStorageMinerForNode(ctx context.Context, node *Node) (*storage.Miner, a
 		return nil, address.Undef, errors.Wrap(err, "no mining owner available, skipping storage miner setup")
 	}
 
-	workerAddress, err := node.Refactor3140.PorcelainAPI.MinerGetWorkerAddress(ctx, minerAddr, node.Refactor3140.ChainReader.GetHead())
+	workerAddress, err := node.Refactor3140.PorcelainAPI.MinerGetWorkerAddress(ctx, minerAddr, node.Chain3140.ChainReader.GetHead())
 	if err != nil {
 		return nil, address.Undef, errors.Wrap(err, "failed to fetch miner's worker address")
 	}
@@ -711,7 +713,7 @@ func (node *Node) setupProtocols() error {
 	blockMiningAPI := block.New(
 		node.MiningAddress,
 		node.AddNewBlock,
-		node.Refactor3140.ChainReader,
+		node.Chain3140.ChainReader,
 		node.IsMining,
 		mineDelay,
 		node.SetupMining,
@@ -769,9 +771,9 @@ func (node *Node) CreateMiningWorker(ctx context.Context) (mining.Worker, error)
 		TicketGen:    consensus.TicketMachine{},
 
 		MessageSource: node.Refactor3140.Inbox.Pool(),
-		MessageStore:  node.Refactor3140.MessageStore,
+		MessageStore:  node.Chain3140.MessageStore,
 		Processor:     processor,
-		PowerTable:    node.Refactor3140.PowerTable,
+		PowerTable:    node.Chain3140.PowerTable,
 		Blockstore:    node.Refactor3140.Blockstore,
 		Clock:         node.Clock,
 	}), nil
@@ -779,7 +781,7 @@ func (node *Node) CreateMiningWorker(ctx context.Context) (mining.Worker, error)
 
 // getStateTree is the default GetStateTree function for the mining worker.
 func (node *Node) getStateTree(ctx context.Context, ts types.TipSet) (state.Tree, error) {
-	return node.Refactor3140.ChainReader.GetTipSetState(ctx, ts.Key())
+	return node.Chain3140.ChainReader.GetTipSetState(ctx, ts.Key())
 }
 
 // getWeight is the default GetWeight function for the mining worker.
@@ -790,19 +792,19 @@ func (node *Node) getWeight(ctx context.Context, ts types.TipSet) (uint64, error
 	}
 	// TODO handle genesis cid more gracefully
 	if parent.Len() == 0 {
-		return node.Refactor3140.Consensus.Weight(ctx, ts, nil)
+		return node.Chain3140.Consensus.Weight(ctx, ts, nil)
 	}
-	pSt, err := node.Refactor3140.ChainReader.GetTipSetState(ctx, parent)
+	pSt, err := node.Chain3140.ChainReader.GetTipSetState(ctx, parent)
 	if err != nil {
 		return uint64(0), err
 	}
-	return node.Refactor3140.Consensus.Weight(ctx, ts, pSt)
+	return node.Chain3140.Consensus.Weight(ctx, ts, pSt)
 }
 
 // getAncestors is the default GetAncestors function for the mining worker.
 func (node *Node) getAncestors(ctx context.Context, ts types.TipSet, newBlockHeight *types.BlockHeight) ([]types.TipSet, error) {
 	ancestorHeight := newBlockHeight.Sub(types.NewBlockHeight(consensus.AncestorRoundsNeeded))
-	return chain.GetRecentAncestors(ctx, ts, node.Refactor3140.ChainReader, ancestorHeight)
+	return chain.GetRecentAncestors(ctx, ts, node.Chain3140.ChainReader, ancestorHeight)
 }
 
 // -- Accessors

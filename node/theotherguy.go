@@ -44,28 +44,36 @@ type BlockMiningSubmodule struct {
 	miningDoneWg *sync.WaitGroup
 }
 
-// ToSplitOrNotToSplitNode is part of an ongoing refactor to cleanup `node.Node`.
-//
-// TODO: complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
-type ToSplitOrNotToSplitNode struct {
+// ChainSubmodule enhances the `Node` with chain capabilities.
+type ChainSubmodule struct {
 	NetworkName  string
 	Consensus    consensus.Protocol
 	ChainReader  nodeChainReader
 	MessageStore *chain.MessageStore
 	Syncer       nodeChainSyncer
 	PowerTable   consensus.PowerTableView
+	// HeavyTipSetCh is a subscription to the heaviest tipset topic on the chain.
+	// https://github.com/filecoin-project/go-filecoin/issues/2309
+	HeaviestTipSetCh chan interface{}
+	// cancelChainSync cancels the context for chain sync subscriptions and handlers.
+	cancelChainSync context.CancelFunc
+	// ChainSynced is a latch that releases when a nodes chain reaches a caught-up state.
+	// It serves as a barrier to be released when the initial chain sync has completed.
+	// Services which depend on a more-or-less synced chain can wait for this before starting up.
+	ChainSynced *moresync.Latch
+}
+
+// ToSplitOrNotToSplitNode is part of an ongoing refactor to cleanup `node.Node`.
+//
+// TODO: complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
+type ToSplitOrNotToSplitNode struct {
 	VersionTable version.ProtocolVersionTable
 
 	PorcelainAPI *porcelain.API
 	RetrievalAPI *retrieval.API
 	StorageAPI   *storage.API
 
-	// HeavyTipSetCh is a subscription to the heaviest tipset topic on the chain.
-	// https://github.com/filecoin-project/go-filecoin/issues/2309
-	HeaviestTipSetCh chan interface{}
-	// cancelChainSync cancels the context for chain sync subscriptions and handlers.
-	cancelChainSync context.CancelFunc
-
+	// Review: is this message queue only used for block mining?
 	// Incoming messages for block mining.
 	Inbox *message.Inbox
 	// Messages sent and not yet mined.
@@ -90,11 +98,6 @@ type ToSplitOrNotToSplitNode struct {
 	// SectorBuilder is used by the miner to fill and seal sectors.
 	sectorBuilder sectorbuilder.SectorBuilder
 
-	// ChainSynced is a latch that releases when a nodes chain reaches a caught-up state.
-	// It serves as a barrier to be released when the initial chain sync has completed.
-	// Services which depend on a more-or-less synced chain can wait for this before starting up.
-	ChainSynced *moresync.Latch
-
 	// TODO: network networking
 	HelloSvc     *hello.Handler
 	Bootstrapper *net.Bootstrapper
@@ -111,10 +114,11 @@ type ToSplitOrNotToSplitNode struct {
 	// Blockservice is a higher level interface for fetching data
 	blockservice bserv.BlockService
 
-	// TODO: moveout
+	// Review: check what this guy is about exactly
 	// Blockstore is the un-networked blocks interface
 	Blockstore bstore.Blockstore
 
+	// Review: should we move this to the chain submodule?
 	// TODO: cache for chain and data shared, wrapper for blockstore
 	// CborStore is a temporary interface for interacting with IPLD objects.
 	cborStore *hamt.CborIpldStore

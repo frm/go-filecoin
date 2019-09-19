@@ -284,17 +284,19 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 			PeerTracker:  peerTracker,
 			Fetcher:      fetcher,
 			Exchange:     bswap,
+			Inbox:        inbox,
+			Outbox:       outbox,
+			Repo:         nc.Repo,
+			Wallet:       fcWallet,
+		},
+		Chain3140: ChainSubmodule{
 			Consensus:    nodeConsensus,
 			ChainReader:  chainStore,
 			ChainSynced:  moresync.NewLatch(1),
 			MessageStore: messageStore,
 			Syncer:       chainSyncer,
 			PowerTable:   powerTable,
-			Inbox:        inbox,
-			Outbox:       outbox,
 			NetworkName:  network,
-			Repo:         nc.Repo,
-			Wallet:       fcWallet,
 		},
 	}
 

@@ -23,7 +23,7 @@ func TestProtocol(t *testing.T) {
 			c.Mining.AutoSealIntervalSeconds = 120
 		}).
 		Build(ctx)
-	require.NoError(t, node.Refactor3140.ChainReader.Load(ctx))
+	require.NoError(t, node.Chain3140.ChainReader.Load(ctx))
 
 	// Run the command API.
 	cmd, stop := test.RunNodeAPI(ctx, node, t)

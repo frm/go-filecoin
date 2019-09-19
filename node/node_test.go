@@ -126,7 +126,7 @@ func TestNodeInit(t *testing.T) {
 
 	assert.NoError(t, nd.Start(ctx))
 
-	assert.NotEqual(t, 0, nd.Refactor3140.ChainReader.GetHead().Len())
+	assert.NotEqual(t, 0, nd.Chain3140.ChainReader.GetHead().Len())
 	nd.Stop(ctx)
 }
 

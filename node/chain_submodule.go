@@ -5,12 +5,15 @@ import (
 
 	"github.com/filecoin-project/go-filecoin/chain"
 	"github.com/filecoin-project/go-filecoin/consensus"
+	"github.com/filecoin-project/go-filecoin/net/pubsub"
 	"github.com/filecoin-project/go-filecoin/util/moresync"
 )
 
 // ChainSubmodule enhances the `Node` with chain capabilities.
 type ChainSubmodule struct {
-	NetworkName  string
+	NetworkName string
+	// XXX: this is part of chain
+	BlockSub     pubsub.Subscription
 	Consensus    consensus.Protocol
 	ChainReader  nodeChainReader
 	MessageStore *chain.MessageStore

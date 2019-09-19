@@ -53,8 +53,6 @@ type Node struct {
 	PeerHost host.Host
 
 	// Network Fields
-	// XXX: this is part of chain
-	BlockSub pubsub.Subscription
 	// XXX: this is part of the block-miner
 	MessageSub pubsub.Subscription
 
@@ -178,7 +176,7 @@ func (node *Node) Start(ctx context.Context) error {
 
 			if syncCtx.Err() == nil {
 				// Subscribe to block pubsub topic to learn about new chain heads.
-				node.BlockSub, err = node.pubsubscribe(syncCtx, net.BlockTopic(node.Chain3140.NetworkName), node.processBlock)
+				node.Chain3140.BlockSub, err = node.pubsubscribe(syncCtx, net.BlockTopic(node.Chain3140.NetworkName), node.processBlock)
 				if err != nil {
 					log.Error(err)
 				}
@@ -333,9 +331,9 @@ func (node *Node) cancelSubscriptions() {
 		node.Chain3140.cancelChainSync()
 	}
 
-	if node.BlockSub != nil {
-		node.BlockSub.Cancel()
-		node.BlockSub = nil
+	if node.Chain3140.BlockSub != nil {
+		node.Chain3140.BlockSub.Cancel()
+		node.Chain3140.BlockSub = nil
 	}
 
 	if node.MessageSub != nil {

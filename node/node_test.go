@@ -150,11 +150,11 @@ func TestNodeStartMining(t *testing.T) {
 	t.Run("Start/Stop/Start results in a MiningScheduler that is started", func(t *testing.T) {
 		assert.NoError(t, minerNode.StartMining(ctx))
 		defer minerNode.StopMining(ctx)
-		assert.True(t, minerNode.Refactor3140.MiningScheduler.IsStarted())
+		assert.True(t, minerNode.BlockMining3140.MiningScheduler.IsStarted())
 		minerNode.StopMining(ctx)
-		assert.False(t, minerNode.Refactor3140.MiningScheduler.IsStarted())
+		assert.False(t, minerNode.BlockMining3140.MiningScheduler.IsStarted())
 		assert.NoError(t, minerNode.StartMining(ctx))
-		assert.True(t, minerNode.Refactor3140.MiningScheduler.IsStarted())
+		assert.True(t, minerNode.BlockMining3140.MiningScheduler.IsStarted())
 	})
 
 	t.Run("Start + Start gives an error message saying mining is already started", func(t *testing.T) {

@@ -25,22 +25,40 @@ import (
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 )
 
+// BlockMiningSubmodule enhances the `Node` with block mining capabilities.
+//
+// TODO: complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
+type BlockMiningSubmodule struct {
+	BlockMiningAPI *block.MiningAPI
+
+	// Mining stuff.
+	AddNewlyMinedBlock newBlockFunc
+	// cancelMining cancels the context for block production and sector commitments.
+	cancelMining    context.CancelFunc
+	MiningWorker    mining.Worker
+	MiningScheduler mining.Scheduler
+	mining          struct {
+		sync.Mutex
+		isMining bool
+	}
+	miningDoneWg *sync.WaitGroup
+}
+
 // ToSplitOrNotToSplitNode is part of an ongoing refactor to cleanup `node.Node`.
 //
 // TODO: complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
 type ToSplitOrNotToSplitNode struct {
+	NetworkName  string
 	Consensus    consensus.Protocol
 	ChainReader  nodeChainReader
 	MessageStore *chain.MessageStore
 	Syncer       nodeChainSyncer
 	PowerTable   consensus.PowerTableView
-	NetworkName  string
 	VersionTable version.ProtocolVersionTable
 
-	BlockMiningAPI *block.MiningAPI
-	PorcelainAPI   *porcelain.API
-	RetrievalAPI   *retrieval.API
-	StorageAPI     *storage.API
+	PorcelainAPI *porcelain.API
+	RetrievalAPI *retrieval.API
+	StorageAPI   *storage.API
 
 	// HeavyTipSetCh is a subscription to the heaviest tipset topic on the chain.
 	// https://github.com/filecoin-project/go-filecoin/issues/2309
@@ -54,18 +72,6 @@ type ToSplitOrNotToSplitNode struct {
 	Outbox *message.Outbox
 
 	Wallet *wallet.Wallet
-
-	// Mining stuff.
-	AddNewlyMinedBlock newBlockFunc
-	// cancelMining cancels the context for block production and sector commitments.
-	cancelMining    context.CancelFunc
-	MiningWorker    mining.Worker
-	MiningScheduler mining.Scheduler
-	mining          struct {
-		sync.Mutex
-		isMining bool
-	}
-	miningDoneWg *sync.WaitGroup
 
 	// Storage Market Interfaces
 	StorageMiner *storage.Miner

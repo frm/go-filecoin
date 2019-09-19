@@ -153,7 +153,7 @@ func getRepo(req *cmds.Request) (repo.Repo, error) {
 // A message sent to or closure of the `terminate` channel signals the server to stop.
 func RunAPIAndWait(ctx context.Context, nd *node.Node, config *config.APIConfig, ready chan interface{}, terminate chan os.Signal) error {
 	servenv := &Env{
-		blockMiningAPI: nd.Refactor3140.BlockMiningAPI,
+		blockMiningAPI: nd.BlockMining3140.BlockMiningAPI,
 		ctx:            ctx,
 		inspectorAPI:   NewInspectorAPI(nd.Refactor3140.Repo),
 		porcelainAPI:   nd.Refactor3140.PorcelainAPI,

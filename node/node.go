@@ -47,6 +47,8 @@ var (
 )
 
 // Node represents a full Filecoin node.
+//
+// TODO: remove all the 3140's from names before merging https://github.com/filecoin-project/go-filecoin/issues/3140
 type Node struct {
 	host     host.Host
 	PeerHost host.Host
@@ -65,6 +67,8 @@ type Node struct {
 	Clock clock.Clock
 
 	Refactor3140 ToSplitOrNotToSplitNode
+
+	BlockMining3140 BlockMiningSubmodule
 }
 
 // Start boots up the node.
@@ -242,14 +246,14 @@ func (node *Node) setupMining(ctx context.Context) error {
 }
 
 func (node *Node) setIsMining(isMining bool) {
-	node.Refactor3140.mining.Lock()
-	defer node.Refactor3140.mining.Unlock()
-	node.Refactor3140.mining.isMining = isMining
+	node.BlockMining3140.mining.Lock()
+	defer node.BlockMining3140.mining.Unlock()
+	node.BlockMining3140.mining.isMining = isMining
 }
 
 func (node *Node) handleNewMiningOutput(ctx context.Context, miningOutCh <-chan mining.Output) {
 	defer func() {
-		node.Refactor3140.miningDoneWg.Done()
+		node.BlockMining3140.miningDoneWg.Done()
 	}()
 	for {
 		select {
@@ -263,12 +267,12 @@ func (node *Node) handleNewMiningOutput(ctx context.Context, miningOutCh <-chan 
 				log.Errorf("stopping mining. error: %s", output.Err.Error())
 				node.StopMining(context.Background())
 			} else {
-				node.Refactor3140.miningDoneWg.Add(1)
+				node.BlockMining3140.miningDoneWg.Add(1)
 				go func() {
 					if node.IsMining() {
-						node.Refactor3140.AddNewlyMinedBlock(ctx, output.NewBlock)
+						node.BlockMining3140.AddNewlyMinedBlock(ctx, output.NewBlock)
 					}
-					node.Refactor3140.miningDoneWg.Done()
+					node.BlockMining3140.miningDoneWg.Done()
 				}()
 			}
 		}
@@ -407,8 +411,8 @@ func (node *Node) SetupMining(ctx context.Context) error {
 	}
 
 	// ensure we have a mining worker
-	if node.Refactor3140.MiningWorker == nil {
-		if node.Refactor3140.MiningWorker, err = node.CreateMiningWorker(ctx); err != nil {
+	if node.BlockMining3140.MiningWorker == nil {
+		if node.BlockMining3140.MiningWorker, err = node.CreateMiningWorker(ctx); err != nil {
 			return err
 		}
 	}
@@ -449,20 +453,20 @@ func (node *Node) StartMining(ctx context.Context) error {
 
 	_, mineDelay := node.MiningTimes()
 
-	if node.Refactor3140.MiningScheduler == nil {
-		node.Refactor3140.MiningScheduler = mining.NewScheduler(node.Refactor3140.MiningWorker, mineDelay, node.Refactor3140.PorcelainAPI.ChainHead)
-	} else if node.Refactor3140.MiningScheduler.IsStarted() {
+	if node.BlockMining3140.MiningScheduler == nil {
+		node.BlockMining3140.MiningScheduler = mining.NewScheduler(node.BlockMining3140.MiningWorker, mineDelay, node.Refactor3140.PorcelainAPI.ChainHead)
+	} else if node.BlockMining3140.MiningScheduler.IsStarted() {
 		return fmt.Errorf("miner scheduler already started")
 	}
 
 	var miningCtx context.Context
-	miningCtx, node.Refactor3140.cancelMining = context.WithCancel(context.Background())
+	miningCtx, node.BlockMining3140.cancelMining = context.WithCancel(context.Background())
 
-	outCh, doneWg := node.Refactor3140.MiningScheduler.Start(miningCtx)
+	outCh, doneWg := node.BlockMining3140.MiningScheduler.Start(miningCtx)
 
-	node.Refactor3140.miningDoneWg = doneWg
-	node.Refactor3140.AddNewlyMinedBlock = node.addNewlyMinedBlock
-	node.Refactor3140.miningDoneWg.Add(1)
+	node.BlockMining3140.miningDoneWg = doneWg
+	node.BlockMining3140.AddNewlyMinedBlock = node.addNewlyMinedBlock
+	node.BlockMining3140.miningDoneWg.Add(1)
 	go node.handleNewMiningOutput(miningCtx, outCh)
 
 	// initialize the storage fault slasher
@@ -668,12 +672,12 @@ func initStorageMinerForNode(ctx context.Context, node *Node) (*storage.Miner, a
 func (node *Node) StopMining(ctx context.Context) {
 	node.setIsMining(false)
 
-	if node.Refactor3140.cancelMining != nil {
-		node.Refactor3140.cancelMining()
+	if node.BlockMining3140.cancelMining != nil {
+		node.BlockMining3140.cancelMining()
 	}
 
-	if node.Refactor3140.miningDoneWg != nil {
-		node.Refactor3140.miningDoneWg.Wait()
+	if node.BlockMining3140.miningDoneWg != nil {
+		node.BlockMining3140.miningDoneWg.Wait()
 	}
 
 	// TODO: stop node.Refactor3140.StorageMiner
@@ -715,7 +719,7 @@ func (node *Node) setupProtocols() error {
 		node.StopMining,
 		node.GetMiningWorker)
 
-	node.Refactor3140.BlockMiningAPI = &blockMiningAPI
+	node.BlockMining3140.BlockMiningAPI = &blockMiningAPI
 
 	// set up retrieval client and api
 	retapi := retrieval.NewAPI(retrieval.NewClient(node.host, node.Refactor3140.PorcelainAPI))
@@ -733,7 +737,7 @@ func (node *Node) GetMiningWorker(ctx context.Context) (mining.Worker, error) {
 	if err := node.SetupMining(ctx); err != nil {
 		return nil, err
 	}
-	return node.Refactor3140.MiningWorker, nil
+	return node.BlockMining3140.MiningWorker, nil
 }
 
 // CreateMiningWorker creates a mining.Worker for the node using the configured
@@ -825,7 +829,7 @@ func (node *Node) CborStore() *hamt.CborIpldStore {
 
 // IsMining returns a boolean indicating whether the node is mining blocks.
 func (node *Node) IsMining() bool {
-	node.Refactor3140.mining.Lock()
-	defer node.Refactor3140.mining.Unlock()
-	return node.Refactor3140.mining.isMining
+	node.BlockMining3140.mining.Lock()
+	defer node.BlockMining3140.mining.Unlock()
+	return node.BlockMining3140.mining.isMining
 }

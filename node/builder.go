@@ -272,18 +272,18 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 	outbox := message.NewOutbox(fcWallet, consensus.NewOutboundMessageValidator(), msgQueue, msgPublisher, outboxPolicy, chainStore, chainState)
 
 	nd := &Node{
-		blockservice: bservice,
-		Blockstore:   bs,
-		cborStore:    &ipldCborStore,
-		Clock:        nc.Clock,
-		PeerTracker:  peerTracker,
-		Fetcher:      fetcher,
-		Exchange:     bswap,
-		host:         peerHost,
-		OfflineMode:  nc.OfflineMode,
-		PeerHost:     peerHost,
-		Router:       router,
+		Clock:       nc.Clock,
+		OfflineMode: nc.OfflineMode,
+		host:        peerHost,
+		PeerHost:    peerHost,
+		Router:      router,
 		Refactor3140: ToSplitOrNotToSplitNode{
+			blockservice: bservice,
+			Blockstore:   bs,
+			cborStore:    &ipldCborStore,
+			PeerTracker:  peerTracker,
+			Fetcher:      fetcher,
+			Exchange:     bswap,
 			Consensus:    nodeConsensus,
 			ChainReader:  chainStore,
 			ChainSynced:  moresync.NewLatch(1),
@@ -330,7 +330,7 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 		return nil, errors.Wrapf(err, "couldn't parse bootstrap addresses [%s]", ba)
 	}
 	minPeerThreshold := nd.Refactor3140.Repo.Config().Bootstrap.MinPeerThreshold
-	nd.Bootstrapper = net.NewBootstrapper(bpi, nd.Host(), nd.Host().Network(), nd.Router, minPeerThreshold, period)
+	nd.Refactor3140.Bootstrapper = net.NewBootstrapper(bpi, nd.Host(), nd.Host().Network(), nd.Router, minPeerThreshold, period)
 
 	return nd, nil
 }

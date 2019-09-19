@@ -8,15 +8,21 @@ import (
 	"github.com/filecoin-project/go-filecoin/consensus"
 	"github.com/filecoin-project/go-filecoin/message"
 	"github.com/filecoin-project/go-filecoin/mining"
+	"github.com/filecoin-project/go-filecoin/net"
 	"github.com/filecoin-project/go-filecoin/porcelain"
 	"github.com/filecoin-project/go-filecoin/proofs/sectorbuilder"
 	"github.com/filecoin-project/go-filecoin/protocol/block"
+	"github.com/filecoin-project/go-filecoin/protocol/hello"
 	"github.com/filecoin-project/go-filecoin/protocol/retrieval"
 	"github.com/filecoin-project/go-filecoin/protocol/storage"
 	"github.com/filecoin-project/go-filecoin/repo"
 	"github.com/filecoin-project/go-filecoin/util/moresync"
 	"github.com/filecoin-project/go-filecoin/version"
 	"github.com/filecoin-project/go-filecoin/wallet"
+	bserv "github.com/ipfs/go-blockservice"
+	"github.com/ipfs/go-hamt-ipld"
+	bstore "github.com/ipfs/go-ipfs-blockstore"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 )
 
 // ToSplitOrNotToSplitNode is part of an ongoing refactor to cleanup `node.Node`.
@@ -82,4 +88,28 @@ type ToSplitOrNotToSplitNode struct {
 	// It serves as a barrier to be released when the initial chain sync has completed.
 	// Services which depend on a more-or-less synced chain can wait for this before starting up.
 	ChainSynced *moresync.Latch
+
+	// TODO: network networking
+	HelloSvc     *hello.Handler
+	Bootstrapper *net.Bootstrapper
+	// PeerTracker maintains a list of peers good for fetching.
+	PeerTracker *net.PeerTracker
+
+	// TODO: this is more on the chainsync networking
+	// Fetcher is the interface for fetching data from nodes.
+	Fetcher net.Fetcher
+
+	// TODO: this is more on the storage dealing networking side
+	// Exchange is the interface for fetching data from other nodes.
+	Exchange exchange.Interface
+	// Blockservice is a higher level interface for fetching data
+	blockservice bserv.BlockService
+
+	// TODO: moveout
+	// Blockstore is the un-networked blocks interface
+	Blockstore bstore.Blockstore
+
+	// TODO: cache for chain and data shared, wrapper for blockstore
+	// CborStore is a temporary interface for interacting with IPLD objects.
+	cborStore *hamt.CborIpldStore
 }

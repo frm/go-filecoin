@@ -11,7 +11,6 @@ import (
 	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-hamt-ipld"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -52,40 +51,20 @@ type Node struct {
 	host     host.Host
 	PeerHost host.Host
 
-	Refactor3140 ToSplitOrNotToSplitNode
+	// Router is a router from IPFS
+	Router routing.Routing
 
 	// Network Fields
-	BlockSub     pubsub.Subscription
-	MessageSub   pubsub.Subscription
-	HelloSvc     *hello.Handler
-	Bootstrapper *net.Bootstrapper
-
-	// PeerTracker maintains a list of peers good for fetching.
-	PeerTracker *net.PeerTracker
-
-	// Fetcher is the interface for fetching data from nodes.
-	Fetcher net.Fetcher
-
-	// Exchange is the interface for fetching data from other nodes.
-	Exchange exchange.Interface
-
-	// Blockstore is the un-networked blocks interface
-	Blockstore bstore.Blockstore
-
-	// Blockservice is a higher level interface for fetching data
-	blockservice bserv.BlockService
-
-	// CborStore is a temporary interface for interacting with IPLD objects.
-	cborStore *hamt.CborIpldStore
+	BlockSub   pubsub.Subscription
+	MessageSub pubsub.Subscription
 
 	// OfflineMode, when true, disables libp2p
 	OfflineMode bool
 
-	// Router is a router from IPFS
-	Router routing.Routing
-
 	// Clock is a clock used by the node for time.
 	Clock clock.Clock
+
+	Refactor3140 ToSplitOrNotToSplitNode
 }
 
 // Start boots up the node.
@@ -131,14 +110,14 @@ func (node *Node) Start(ctx context.Context) error {
 
 	if !node.OfflineMode {
 		// Start bootstrapper.
-		node.Bootstrapper.Start(context.Background())
+		node.Refactor3140.Bootstrapper.Start(context.Background())
 
 		// Register peer tracker disconnect function with network.
-		net.TrackerRegisterDisconnect(node.host.Network(), node.PeerTracker)
+		net.TrackerRegisterDisconnect(node.host.Network(), node.Refactor3140.PeerTracker)
 
 		// Start up 'hello' handshake service
 		helloCallback := func(ci *types.ChainInfo) {
-			node.PeerTracker.Track(ci)
+			node.Refactor3140.PeerTracker.Track(ci)
 			// TODO Implement principled trusting of ChainInfo's
 			// to address in #2674
 			trusted := true
@@ -159,11 +138,11 @@ func (node *Node) Start(ctx context.Context) error {
 			// See https://github.com/filecoin-project/go-filecoin/issues/1105
 			node.Refactor3140.ChainSynced.Done()
 		}
-		node.HelloSvc = hello.New(node.Host(), node.Refactor3140.ChainReader.GenesisCid(), helloCallback, node.Refactor3140.PorcelainAPI.ChainHead, node.Refactor3140.NetworkName)
+		node.Refactor3140.HelloSvc = hello.New(node.Host(), node.Refactor3140.ChainReader.GenesisCid(), helloCallback, node.Refactor3140.PorcelainAPI.ChainHead, node.Refactor3140.NetworkName)
 
 		// register the update function on the peer tracker now that we have a hello service
-		node.PeerTracker.SetUpdateFn(func(ctx context.Context, p peer.ID) (*types.ChainInfo, error) {
-			hmsg, err := node.HelloSvc.ReceiveHello(ctx, p)
+		node.Refactor3140.PeerTracker.SetUpdateFn(func(ctx context.Context, p peer.ID) (*types.ChainInfo, error) {
+			hmsg, err := node.Refactor3140.HelloSvc.ReceiveHello(ctx, p)
 			if err != nil {
 				return nil, err
 			}
@@ -372,7 +351,7 @@ func (node *Node) Stop(ctx context.Context) {
 		fmt.Printf("error closing repo: %s\n", err)
 	}
 
-	node.Bootstrapper.Stop()
+	node.Refactor3140.Bootstrapper.Stop()
 
 	fmt.Println("stopping filecoin :(")
 }
@@ -628,7 +607,7 @@ func initSectorBuilderForNode(ctx context.Context, node *Node) (sectorbuilder.Se
 		return nil, err
 	}
 	cfg := sectorbuilder.RustSectorBuilderConfig{
-		BlockService:     node.blockservice,
+		BlockService:     node.Refactor3140.blockservice,
 		LastUsedSectorID: lastUsedSectorID,
 		MetadataDir:      stagingDir,
 		MinerAddr:        minerAddr,
@@ -789,7 +768,7 @@ func (node *Node) CreateMiningWorker(ctx context.Context) (mining.Worker, error)
 		MessageStore:  node.Refactor3140.MessageStore,
 		Processor:     processor,
 		PowerTable:    node.Refactor3140.PowerTable,
-		Blockstore:    node.Blockstore,
+		Blockstore:    node.Refactor3140.Blockstore,
 		Clock:         node.Clock,
 	}), nil
 }
@@ -836,12 +815,12 @@ func (node *Node) SectorBuilder() sectorbuilder.SectorBuilder {
 
 // BlockService returns the nodes blockservice.
 func (node *Node) BlockService() bserv.BlockService {
-	return node.blockservice
+	return node.Refactor3140.blockservice
 }
 
 // CborStore returns the nodes cborStore.
 func (node *Node) CborStore() *hamt.CborIpldStore {
-	return node.cborStore
+	return node.Refactor3140.cborStore
 }
 
 // IsMining returns a boolean indicating whether the node is mining blocks.

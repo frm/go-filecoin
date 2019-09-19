@@ -1,22 +1,10 @@
 package node
 
 import (
-	"context"
-	"sync"
-
-	"github.com/filecoin-project/go-filecoin/chain"
-	"github.com/filecoin-project/go-filecoin/consensus"
 	"github.com/filecoin-project/go-filecoin/message"
-	"github.com/filecoin-project/go-filecoin/mining"
 	"github.com/filecoin-project/go-filecoin/net"
 	"github.com/filecoin-project/go-filecoin/porcelain"
-	"github.com/filecoin-project/go-filecoin/proofs/sectorbuilder"
-	"github.com/filecoin-project/go-filecoin/protocol/block"
-	"github.com/filecoin-project/go-filecoin/protocol/hello"
-	"github.com/filecoin-project/go-filecoin/protocol/retrieval"
-	"github.com/filecoin-project/go-filecoin/protocol/storage"
 	"github.com/filecoin-project/go-filecoin/repo"
-	"github.com/filecoin-project/go-filecoin/util/moresync"
 	"github.com/filecoin-project/go-filecoin/version"
 	"github.com/filecoin-project/go-filecoin/wallet"
 	bserv "github.com/ipfs/go-blockservice"
@@ -25,83 +13,21 @@ import (
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 )
 
-// BlockMiningSubmodule enhances the `Node` with block mining capabilities.
-//
-// TODO: complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
-type BlockMiningSubmodule struct {
-	BlockMiningAPI *block.MiningAPI
-
-	// Mining stuff.
-	AddNewlyMinedBlock newBlockFunc
-	// cancelMining cancels the context for block production and sector commitments.
-	cancelMining    context.CancelFunc
-	MiningWorker    mining.Worker
-	MiningScheduler mining.Scheduler
-	mining          struct {
-		sync.Mutex
-		isMining bool
-	}
-	miningDoneWg *sync.WaitGroup
-}
-
-// ChainSubmodule enhances the `Node` with chain capabilities.
-type ChainSubmodule struct {
-	NetworkName  string
-	Consensus    consensus.Protocol
-	ChainReader  nodeChainReader
-	MessageStore *chain.MessageStore
-	Syncer       nodeChainSyncer
-	PowerTable   consensus.PowerTableView
-	// HeavyTipSetCh is a subscription to the heaviest tipset topic on the chain.
-	// https://github.com/filecoin-project/go-filecoin/issues/2309
-	HeaviestTipSetCh chan interface{}
-	// cancelChainSync cancels the context for chain sync subscriptions and handlers.
-	cancelChainSync context.CancelFunc
-	// ChainSynced is a latch that releases when a nodes chain reaches a caught-up state.
-	// It serves as a barrier to be released when the initial chain sync has completed.
-	// Services which depend on a more-or-less synced chain can wait for this before starting up.
-	ChainSynced *moresync.Latch
-}
-
-// StorageProtocolSubmodule enhances the `Node` with "Storage" protocol capabilities.
-type StorageProtocolSubmodule struct {
-	StorageAPI *storage.API
-
-	// Storage Market Interfaces
-	StorageMiner *storage.Miner
-}
-
-// RetrievalProtocolSubmodule enhances the `Node` with "Retrieval" protocol capabilities.
-type RetrievalProtocolSubmodule struct {
-	RetrievalAPI *retrieval.API
-
-	// Retrieval Interfaces
-	RetrievalMiner *retrieval.Miner
-}
-
-// SectorBuilderSubmodule enhances the `Node` with sector storage capabilities.
-type SectorBuilderSubmodule struct {
-	// SectorBuilder is used by the miner to fill and seal sectors.
-	sectorBuilder sectorbuilder.SectorBuilder
-}
-
-// FaultSlasherSubmodule enhances the `Node` with storage slashing capabilities.
-type FaultSlasherSubmodule struct {
-	StorageFaultSlasher storageFaultSlasher
-}
-
-// HelloProtocolSubmodule enhances the `Node` with "Hello" protocol capabilities.
-type HelloProtocolSubmodule struct {
-	HelloSvc *hello.Handler
-}
-
 // ToSplitOrNotToSplitNode is part of an ongoing refactor to cleanup `node.Node`.
 //
-// TODO: complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
+// This structure will not stay, everything in here will either:
+// - be moved back to node,
+// - be moved into an existing submodule
+// - form a new submodule
+//
+// TODO: clean this up to complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
 type ToSplitOrNotToSplitNode struct {
 	VersionTable version.ProtocolVersionTable
 
 	PorcelainAPI *porcelain.API
+	// Repo is the repo this node was created with
+	// it contains all persistent artifacts of the filecoin node
+	Repo repo.Repo
 
 	// Review: is this message queue only used for block mining?
 	// Incoming messages for block mining.
@@ -110,12 +36,6 @@ type ToSplitOrNotToSplitNode struct {
 	Outbox *message.Outbox
 
 	Wallet *wallet.Wallet
-
-	// Data Storage Fields
-
-	// Repo is the repo this node was created with
-	// it contains all persistent artifacts of the filecoin node
-	Repo repo.Repo
 
 	// TODO: network networking
 	Bootstrapper *net.Bootstrapper

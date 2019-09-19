@@ -992,7 +992,7 @@ func (ma *Actor) SubmitPoSt(ctx exec.VMContext, poStProof types.PoStProof, fault
 			req := verification.VerifyPoStRequest{
 				ChallengeSeed:    seed,
 				SortedSectorInfo: sortedSectorInfo,
-				Faults:           faults.SectorIds.Values(),
+				Faults:           state.CurrentFaultSet.Values(),
 				Proof:            poStProof,
 				SectorSize:       state.SectorSize,
 			}
@@ -1012,7 +1012,7 @@ func (ma *Actor) SubmitPoSt(ctx exec.VMContext, poStProof types.PoStProof, fault
 		// Update miner power to the amount of data actually proved
 		// during the last proving period.
 		oldPower := state.Power
-		newPower := types.NewBytesAmount(uint64(state.ProvingSet.Size() - faults.SectorIds.Size())).Mul(state.SectorSize)
+		newPower := types.NewBytesAmount(uint64(state.ProvingSet.Size() - state.CurrentFaultSet.Size())).Mul(state.SectorSize)
 		state.Power = newPower
 		delta := newPower.Sub(oldPower)
 
@@ -1026,12 +1026,12 @@ func (ma *Actor) SubmitPoSt(ctx exec.VMContext, poStProof types.PoStProof, fault
 			}
 		}
 
+		// The next fault set becomes the current one
+		state.CurrentFaultSet = state.NextFaultSet
+		state.NextFaultSet = types.EmptyIntSet()
+
 		// Update SectorSet, DoneSet and ProvingSet
 		if err = state.SectorCommitments.Drop(done.Values()); err != nil {
-			return nil, err
-		}
-
-		if err = state.SectorCommitments.Drop(faults.SectorIds.Values()); err != nil {
 			return nil, err
 		}
 

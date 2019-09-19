@@ -540,9 +540,17 @@ func (mal *minerActorLiason) requireCommit(blockHeight, sectorID uint64) {
 	require.Equal(mal.t, uint8(0), res.Receipt.ExitCode)
 }
 
-func (mal *minerActorLiason) requirePoSt(blockHeight uint64, done types.IntSet, faults types.FaultSet) {
+func (mal *minerActorLiason) requireAddFaults(blockHeight uint64, faults types.FaultSet) {
 	mal.requireHeightNotPast(blockHeight)
-	res, err := th.CreateAndApplyTestMessage(mal.t, mal.st, mal.vms, mal.minerAddr, 0, blockHeight, "submitPoSt", mal.ancestors, th.MakeRandomPoStProofForTest(), faults, done)
+	res, err := th.CreateAndApplyTestMessage(mal.t, mal.st, mal.vms, mal.minerAddr, 0, blockHeight, "addFaults", mal.ancestors, faults)
+	require.NoError(mal.t, err)
+	require.NoError(mal.t, res.ExecutionError)
+	require.Equal(mal.t, uint8(0), res.Receipt.ExitCode)
+}
+
+func (mal *minerActorLiason) requirePoSt(blockHeight uint64, done types.IntSet) {
+	mal.requireHeightNotPast(blockHeight)
+	res, err := th.CreateAndApplyTestMessage(mal.t, mal.st, mal.vms, mal.minerAddr, 0, blockHeight, "submitPoSt", mal.ancestors, th.MakeRandomPoStProofForTest(), types.EmptyFaultSet(), done)
 	assert.NoError(mal.t, err)
 	assert.NoError(mal.t, res.ExecutionError)
 	assert.Equal(mal.t, uint8(0), res.Receipt.ExitCode)
@@ -629,8 +637,6 @@ func TestMinerSubmitPoStPowerUpdates(t *testing.T) {
 	thirdProvingPeriodStart := 2*LargestSectorSizeProvingPeriodBlocks + firstCommitBlockHeight
 	fourthProvingPeriodStart := 3*LargestSectorSizeProvingPeriodBlocks + firstCommitBlockHeight
 
-	faults := types.EmptyFaultSet()
-
 	t.Run("power is 0 until first PoSt", func(t *testing.T) {
 		mal := setupMinerActorLiason(t)
 
@@ -653,7 +659,7 @@ func TestMinerSubmitPoStPowerUpdates(t *testing.T) {
 
 		// submit PoSt and add some power.
 		done := types.EmptyIntSet()
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 
 		power := mal.requirePower(firstCommitBlockHeight + 5)
 		assert.Equal(t, types.OneKiBSectorSize, power)
@@ -666,19 +672,19 @@ func TestMinerSubmitPoStPowerUpdates(t *testing.T) {
 		mal.requireCommit(firstCommitBlockHeight, uint64(1))
 		mal.requireCommit(firstCommitBlockHeight+1, uint64(2))
 		done := types.EmptyIntSet()
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 		power := mal.requirePower(firstCommitBlockHeight + 6)
 		assert.Equal(t, types.OneKiBSectorSize, power)
 
 		// Period 2 commit and prove
 		mal.requireCommit(secondProvingPeriodStart+1, uint64(16))
 		mal.requireCommit(secondProvingPeriodStart+2, uint64(17))
-		mal.requirePoSt(secondProvingPeriodStart+5, done, faults)
+		mal.requirePoSt(secondProvingPeriodStart+5, done)
 		power = mal.requirePower(secondProvingPeriodStart + 6)
 		assert.Equal(t, types.NewBytesAmount(2).Mul(types.OneKiBSectorSize), power)
 
 		// Period 3 prove over 4 sectors and measure power
-		mal.requirePoSt(thirdProvingPeriodStart+5, done, faults)
+		mal.requirePoSt(thirdProvingPeriodStart+5, done)
 		power = mal.requirePower(thirdProvingPeriodStart + 6)
 		assert.Equal(t, types.NewBytesAmount(4).Mul(types.OneKiBSectorSize), power)
 	})
@@ -690,16 +696,16 @@ func TestMinerSubmitPoStPowerUpdates(t *testing.T) {
 		mal.requireCommit(firstCommitBlockHeight, uint64(1))
 		mal.requireCommit(firstCommitBlockHeight+1, uint64(2))
 		done := types.EmptyIntSet()
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 
 		// Period 2 commit and prove
 		mal.requireCommit(secondProvingPeriodStart+1, uint64(16))
 		mal.requireCommit(secondProvingPeriodStart+2, uint64(17))
-		mal.requirePoSt(secondProvingPeriodStart+5, done, faults)
+		mal.requirePoSt(secondProvingPeriodStart+5, done)
 
 		// Period 3 prove and drop 1 and 2
 		done = types.NewIntSet(1, 2)
-		mal.requirePoSt(thirdProvingPeriodStart+5, done, faults)
+		mal.requirePoSt(thirdProvingPeriodStart+5, done)
 
 		// power lags removal by a proving period
 		power := mal.requirePower(thirdProvingPeriodStart + 6)
@@ -707,12 +713,12 @@ func TestMinerSubmitPoStPowerUpdates(t *testing.T) {
 
 		// next period power is removed
 		done = types.EmptyIntSet()
-		mal.requirePoSt(fourthProvingPeriodStart+1, done, faults)
+		mal.requirePoSt(fourthProvingPeriodStart+1, done)
 		power = mal.requirePower(fourthProvingPeriodStart + 2)
 		assert.Equal(t, types.NewBytesAmount(2).Mul(types.OneKiBSectorSize), power)
 	})
 
-	t.Run("faults removes power and sector commitments", func(t *testing.T) {
+	t.Run("faults removes power", func(t *testing.T) {
 		mal := setupMinerActorLiason(t)
 		done := types.EmptyIntSet()
 
@@ -720,23 +726,18 @@ func TestMinerSubmitPoStPowerUpdates(t *testing.T) {
 		mal.requireCommit(firstCommitBlockHeight, uint64(1))
 		mal.requireCommit(firstCommitBlockHeight+1, uint64(2))
 		mal.requireCommit(firstCommitBlockHeight+2, uint64(3))
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 
 		// Second proving period
-		mal.requirePoSt(secondProvingPeriodStart, done, faults)
+		mal.requirePoSt(secondProvingPeriodStart, done)
 		power := mal.requirePower(secondProvingPeriodStart + 1)
 		assert.Equal(t, types.NewBytesAmount(3).Mul(types.OneKiBSectorSize), power)
 
 		// PoSt with some faults and check that power has decreased
-		mal.requirePoSt(thirdProvingPeriodStart, done, types.NewFaultSet([]uint64{1, 2}))
-		power = mal.requirePower(thirdProvingPeriodStart + 1)
+		mal.requireAddFaults(thirdProvingPeriodStart+1, types.NewFaultSet([]uint64{1, 2}))
+		mal.requirePoSt(thirdProvingPeriodStart+2, done)
+		power = mal.requirePower(thirdProvingPeriodStart + 3)
 		assert.Equal(t, types.NewBytesAmount(1).Mul(types.OneKiBSectorSize), power)
-
-		// Ensure that sector commitments have been updated
-		state := mal.requireReadState()
-		assert.False(t, state.SectorCommitments.Has(uint64(1)))
-		assert.False(t, state.SectorCommitments.Has(uint64(2)))
-		assert.True(t, state.SectorCommitments.Has(uint64(3)))
 	})
 }
 
@@ -755,6 +756,7 @@ func TestMinerSubmitPoStVerification(t *testing.T) {
 		minerState.SectorCommitments.Add(1, types.Commitments{CommR: comm1.CommR})
 		minerState.SectorCommitments.Add(2, types.Commitments{CommR: comm2.CommR})
 		minerState.SectorCommitments.Add(3, types.Commitments{CommR: comm3.CommR})
+		minerState.CurrentFaultSet = types.NewIntSet(1)
 
 		// The 3 sector is not in the proving set, so its CommR should not appear in the VerifyPoSt request
 		minerState.ProvingSet = types.NewIntSet(1, 2)
@@ -782,7 +784,8 @@ func TestMinerSubmitPoStVerification(t *testing.T) {
 		)
 
 		assert.Equal(t, seed, verifier.LastReceivedVerifyPoStRequest.ChallengeSeed)
-		assert.Equal(t, 0, len(verifier.LastReceivedVerifyPoStRequest.Faults))
+		assert.Equal(t, 1, len(verifier.LastReceivedVerifyPoStRequest.Faults))
+		assert.Equal(t, []uint64{1}, verifier.LastReceivedVerifyPoStRequest.Faults)
 		assert.Equal(t, testProof, verifier.LastReceivedVerifyPoStRequest.Proof)
 		assert.Equal(t, 2, len(verifier.LastReceivedVerifyPoStRequest.SortedSectorInfo.Values()))
 		assert.Equal(t, sortedRs.Values()[0].CommR, verifier.LastReceivedVerifyPoStRequest.SortedSectorInfo.Values()[0].CommR)
@@ -864,8 +867,6 @@ func TestMinerSubmitPoStProvingSet(t *testing.T) {
 	secondProvingPeriodStart := LargestSectorSizeProvingPeriodBlocks + firstCommitBlockHeight
 	thirdProvingPeriodStart := 2*LargestSectorSizeProvingPeriodBlocks + firstCommitBlockHeight
 
-	faults := types.EmptyFaultSet()
-
 	t.Run("empty proving set before first commit", func(t *testing.T) {
 		mal := setupMinerActorLiason(t)
 		mSt := mal.requireReadState()
@@ -897,7 +898,7 @@ func TestMinerSubmitPoStProvingSet(t *testing.T) {
 
 		// submit PoSt to update proving set
 		done := types.EmptyIntSet()
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 
 		mSt := mal.requireReadState()
 		assert.Equal(t, types.NewIntSet(1, 2, 16, 17).Values(), mSt.ProvingSet.Values())
@@ -910,16 +911,16 @@ func TestMinerSubmitPoStProvingSet(t *testing.T) {
 		mal.requireCommit(firstCommitBlockHeight, uint64(1))
 		mal.requireCommit(firstCommitBlockHeight+1, uint64(2))
 		done := types.EmptyIntSet()
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 
 		// Period 2 commit and prove
 		mal.requireCommit(secondProvingPeriodStart+1, uint64(16))
 		mal.requireCommit(secondProvingPeriodStart+2, uint64(17))
-		mal.requirePoSt(secondProvingPeriodStart+5, done, faults)
+		mal.requirePoSt(secondProvingPeriodStart+5, done)
 
 		// Period 3 commit and prove
 		mal.requireCommit(thirdProvingPeriodStart+1, uint64(4))
-		mal.requirePoSt(thirdProvingPeriodStart+5, done, faults)
+		mal.requirePoSt(thirdProvingPeriodStart+5, done)
 
 		mSt := mal.requireReadState()
 		assert.Equal(t, types.NewIntSet(1, 2, 4, 16, 17).Values(), mSt.ProvingSet.Values())
@@ -935,7 +936,7 @@ func TestMinerSubmitPoStProvingSet(t *testing.T) {
 
 		// submit PoSt to update proving set and remove sector 17
 		done := types.NewIntSet(17)
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 		mSt := mal.requireReadState()
 		assert.Equal(t, types.NewIntSet(1, 2).Values(), mSt.ProvingSet.Values())
 	})
@@ -949,8 +950,6 @@ func TestMinerSubmitPoStNextDoneSet(t *testing.T) {
 	secondProvingPeriodStart := LargestSectorSizeProvingPeriodBlocks + firstCommitBlockHeight
 	thirdProvingPeriodStart := 2*LargestSectorSizeProvingPeriodBlocks + firstCommitBlockHeight
 
-	faults := types.EmptyFaultSet()
-
 	t.Run("next done set empty when done arg empty", func(t *testing.T) {
 		mal := setupMinerActorLiason(t)
 		mal.requireCommit(firstCommitBlockHeight, uint64(1))
@@ -959,7 +958,7 @@ func TestMinerSubmitPoStNextDoneSet(t *testing.T) {
 
 		// submit PoSt to update proving set with no done sectors
 		done := types.EmptyIntSet()
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 		mSt := mal.requireReadState()
 		assert.Equal(t, types.EmptyIntSet().Values(), mSt.NextDoneSet.Values())
 	})
@@ -972,11 +971,11 @@ func TestMinerSubmitPoStNextDoneSet(t *testing.T) {
 		mal.requireCommit(firstCommitBlockHeight+1, uint64(2))
 		mal.requireCommit(firstCommitBlockHeight+1, uint64(3))
 		done := types.EmptyIntSet()
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 
 		// Period 2 remove id 2 and 3
 		done = types.NewIntSet(2, 3)
-		mal.requirePoSt(secondProvingPeriodStart+5, done, faults)
+		mal.requirePoSt(secondProvingPeriodStart+5, done)
 		mSt := mal.requireReadState()
 		assert.Equal(t, done.Values(), mSt.NextDoneSet.Values())
 	})
@@ -989,15 +988,15 @@ func TestMinerSubmitPoStNextDoneSet(t *testing.T) {
 		mal.requireCommit(firstCommitBlockHeight+1, uint64(2))
 		mal.requireCommit(firstCommitBlockHeight+1, uint64(3))
 		done := types.EmptyIntSet()
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 
 		// Period 2 remove id 2 and 3
 		done = types.NewIntSet(2, 3)
-		mal.requirePoSt(secondProvingPeriodStart+5, done, faults)
+		mal.requirePoSt(secondProvingPeriodStart+5, done)
 
 		// Period 3 commit and prove
 		done = types.EmptyIntSet()
-		mal.requirePoSt(thirdProvingPeriodStart+5, done, faults)
+		mal.requirePoSt(thirdProvingPeriodStart+5, done)
 
 		mSt := mal.requireReadState()
 		assert.Equal(t, types.EmptyIntSet().Values(), mSt.NextDoneSet.Values())
@@ -1012,10 +1011,49 @@ func TestMinerSubmitPoStNextDoneSet(t *testing.T) {
 		mal.requireCommit(firstCommitBlockHeight+1, uint64(2))
 		mal.requireCommit(firstCommitBlockHeight+1, uint64(3))
 		done := types.EmptyIntSet()
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 
 		failingDone := done.Add(uint64(30))
 		mal.assertPoStFail(secondProvingPeriodStart+5, failingDone, uint8(ErrInvalidSector))
+	})
+}
+
+func TestMinerSubmitPoStFaults(t *testing.T) {
+	tf.UnitTest(t)
+
+	message := types.NewMessage(address.TestAddress, address.TestAddress2, 0, types.ZeroAttoFIL, "submitPoSt", nil)
+	comm1 := th.MakeCommitments()
+	comm2 := th.MakeCommitments()
+
+	t.Run("Updates CurrentFaultSet, NextFaultSet", func(t *testing.T) {
+		minerState := *NewState(address.TestAddress, address.TestAddress, peer.ID(""), types.OneKiBSectorSize)
+		minerState.ProvingPeriodEnd = types.NewBlockHeight(ProvingPeriodDuration(types.OneKiBSectorSize))
+		minerState.SectorCommitments = NewSectorSet()
+		minerState.SectorCommitments.Add(1, types.Commitments{CommR: comm1.CommR})
+		minerState.SectorCommitments.Add(2, types.Commitments{CommR: comm2.CommR})
+		minerState.ProvingSet = types.NewIntSet(1, 2)
+
+		minerState.CurrentFaultSet = types.NewIntSet(1)
+		minerState.NextFaultSet = types.NewIntSet(2)
+
+		verifier := &verification.FakeVerifier{
+			VerifyPoStValid: true,
+		}
+		vmctx := th.NewFakeVMContextWithVerifier(message, minerState, verifier)
+		vmctx.BlockHeightValue = types.NewBlockHeight(530)
+
+		miner := Actor{Bootstrap: false}
+
+		testProof := th.MakeRandomPoStProofForTest()
+		_, err := miner.SubmitPoSt(vmctx, testProof, types.EmptyFaultSet(), types.EmptyIntSet())
+		require.NoError(t, err)
+
+		newState := State{}
+		err = actor.ReadState(vmctx, &newState)
+		require.NoError(t, err)
+
+		require.Equal(t, []uint64{2}, newState.CurrentFaultSet.Values())
+		require.Equal(t, 0, newState.NextFaultSet.Size())
 	})
 }
 
@@ -1580,8 +1618,6 @@ func TestMinerGetPoStState(t *testing.T) {
 	lastHeightOfFirstPeriod := firstCommitBlockHeight + LargestSectorSizeProvingPeriodBlocks
 	lastHeightOfSecondPeriod := lastHeightOfFirstPeriod + LargestSectorSizeProvingPeriodBlocks
 
-	faults := types.EmptyFaultSet()
-
 	t.Run("is reported as not late within the proving period", func(t *testing.T) {
 		mal := setupMinerActorLiason(t)
 		mal.requireCommit(firstCommitBlockHeight, uint64(1))
@@ -1590,7 +1626,7 @@ func TestMinerGetPoStState(t *testing.T) {
 
 		// submit PoSt to update proving set with no done sectors
 		done := types.EmptyIntSet()
-		mal.requirePoSt(firstCommitBlockHeight+5, done, faults)
+		mal.requirePoSt(firstCommitBlockHeight+5, done)
 		mal.assertPoStStateAtHeight(PoStStateWithinProvingPeriod, firstCommitBlockHeight)
 		mal.assertPoStStateAtHeight(PoStStateWithinProvingPeriod, firstCommitBlockHeight+6)
 	})

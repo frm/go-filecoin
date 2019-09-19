@@ -49,9 +49,6 @@ var (
 //
 // TODO: remove all the 3140's from names before merging https://github.com/filecoin-project/go-filecoin/issues/3140
 type Node struct {
-	host     host.Host
-	PeerHost host.Host
-
 	// OfflineMode, when true, disables libp2p
 	OfflineMode bool
 
@@ -83,7 +80,7 @@ func (node *Node) Start(ctx context.Context) error {
 		return errors.Wrap(err, "failed to setup metrics")
 	}
 
-	if err := metrics.RegisterJaeger(node.host.ID().Pretty(), node.Refactor3140.Repo.Config().Observability.Tracing); err != nil {
+	if err := metrics.RegisterJaeger(node.Network3140.host.ID().Pretty(), node.Refactor3140.Repo.Config().Observability.Tracing); err != nil {
 		return errors.Wrap(err, "failed to setup tracing")
 	}
 
@@ -123,7 +120,7 @@ func (node *Node) Start(ctx context.Context) error {
 		node.Network3140.Bootstrapper.Start(context.Background())
 
 		// Register peer tracker disconnect function with network.
-		net.TrackerRegisterDisconnect(node.host.Network(), node.Network3140.PeerTracker)
+		net.TrackerRegisterDisconnect(node.Network3140.host.Network(), node.Network3140.PeerTracker)
 
 		// Start up 'hello' handshake service
 		helloCallback := func(ci *types.ChainInfo) {
@@ -728,11 +725,11 @@ func (node *Node) setupProtocols() error {
 	node.BlockMining3140.BlockMiningAPI = &blockMiningAPI
 
 	// set up retrieval client and api
-	retapi := retrieval.NewAPI(retrieval.NewClient(node.host, node.Refactor3140.PorcelainAPI))
+	retapi := retrieval.NewAPI(retrieval.NewClient(node.Network3140.host, node.Refactor3140.PorcelainAPI))
 	node.RetrievalProtocol3140.RetrievalAPI = &retapi
 
 	// set up storage client and api
-	smc := storage.NewClient(node.host, node.Refactor3140.PorcelainAPI)
+	smc := storage.NewClient(node.Network3140.host, node.Refactor3140.PorcelainAPI)
 	smcAPI := storage.NewAPI(smc)
 	node.StorageProtocol3140.StorageAPI = &smcAPI
 	return nil
@@ -815,7 +812,7 @@ func (node *Node) getAncestors(ctx context.Context, ts types.TipSet, newBlockHei
 
 // Host returns the nodes host.
 func (node *Node) Host() host.Host {
-	return node.host
+	return node.Network3140.host
 }
 
 // SectorBuilder returns the nodes sectorBuilder.

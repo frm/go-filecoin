@@ -2,12 +2,17 @@ package node
 
 import (
 	"github.com/filecoin-project/go-filecoin/net"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 )
 
 // NetworkSubmodule enhances the `Node` with networking capabilities.
 type NetworkSubmodule struct {
 	NetworkName string
+
+	host host.Host
+
+	PeerHost host.Host
 
 	Bootstrapper *net.Bootstrapper
 

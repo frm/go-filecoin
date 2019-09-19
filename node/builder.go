@@ -274,9 +274,9 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 	nd := &Node{
 		Clock:       nc.Clock,
 		OfflineMode: nc.OfflineMode,
-		host:        peerHost,
-		PeerHost:    peerHost,
 		Network3140: NetworkSubmodule{
+			host:        peerHost,
+			PeerHost:    peerHost,
 			NetworkName: network,
 			PeerTracker: peerTracker,
 			Router:      router,

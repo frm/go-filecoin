@@ -21,41 +21,48 @@ import (
 //
 // TODO: clean this up to complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
 type ToSplitOrNotToSplitNode struct {
-	// Review: I guess this is either Node or a subsystem for managing protocols
+	// TODO: move to node
 	VersionTable version.ProtocolVersionTable
 
-	// Review: candidate to be moved back to Node
+	// TODO: move to node
 	PorcelainAPI *porcelain.API
+
 	// Repo is the repo this node was created with
 	// it contains all persistent artifacts of the filecoin node
-	// Review: candidate to be moved back to Node
+	//
+	// TODO: move to store, although each submodule should only see a view of it
 	Repo repo.Repo
 
-	// Review: I need to better understand this guy..
 	// Incoming messages for block mining.
+	//
+	// TODO: have this two form the `MessagingSubmodule` (issue: ???)
 	Inbox *message.Inbox
 	// Messages sent and not yet mined.
 	Outbox *message.Outbox
 
-	// Review: is this its own submodule?
+	// TODO: Move too its own submodule
 	Wallet *wallet.Wallet
 
-	// Review: is this only used for storage deals or retrieval too?
-	//         if its only storage -> move to StorageSubmodule
-	//         if its both, move to SectorBuilderSubmodule?
 	// Exchange is the interface for fetching data from other nodes.
+	//
+	// TODO: move to a `StorageNetworkingSubmodule`
 	Exchange exchange.Interface
 
-	// Review: where do we place this guy?
 	// Blockservice is a higher level interface for fetching data
+	//
+	// Note: at present `BlockService` is shared by chain/graphsync and piece/bitswap data
+	// TODO: split chain data from piece data (issue: ???)
 	blockservice bserv.BlockService
 
-	// Review: where do we place this guy?
 	// Blockstore is the un-networked blocks interface
+	//
+	// Note: at present `Blockstore` is shared by chain/graphsync and piece/bitswap data
+	// TODO: split chain data from piece data (issue: ???)
 	Blockstore bstore.Blockstore
 
-	// Review: should we move this to the chain submodule?
-	// TODO: cache for chain and data shared, wrapper for blockstore
 	// CborStore is a temporary interface for interacting with IPLD objects.
+	//
+	// Note: Used for chain state and shared with piece data exchange for deals at the moment.
+	// TODO: split chain data from piece data (issue: ???)
 	cborStore *hamt.CborIpldStore
 }

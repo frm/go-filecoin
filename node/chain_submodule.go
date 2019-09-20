@@ -11,6 +11,8 @@ import (
 )
 
 // ChainSubmodule enhances the `Node` with chain capabilities.
+//
+// TODO: split consensus away from ChainSubmodule (issue: ???)
 type ChainSubmodule struct {
 	BlockSub     pubsub.Subscription
 	Consensus    consensus.Protocol
@@ -27,7 +29,6 @@ type ChainSubmodule struct {
 	// It serves as a barrier to be released when the initial chain sync has completed.
 	// Services which depend on a more-or-less synced chain can wait for this before starting up.
 	ChainSynced *moresync.Latch
-	// Review: should we have this on chain or is a bit more generic?
 	// Fetcher is the interface for fetching data from nodes.
 	Fetcher net.Fetcher
 }

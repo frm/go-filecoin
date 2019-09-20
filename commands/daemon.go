@@ -155,8 +155,8 @@ func RunAPIAndWait(ctx context.Context, nd *node.Node, config *config.APIConfig,
 	servenv := &Env{
 		blockMiningAPI: nd.BlockMining3140.BlockMiningAPI,
 		ctx:            ctx,
-		inspectorAPI:   NewInspectorAPI(nd.Refactor3140.Repo),
-		porcelainAPI:   nd.Refactor3140.PorcelainAPI,
+		inspectorAPI:   NewInspectorAPI(nd.Repo),
+		porcelainAPI:   nd.PorcelainAPI,
 		retrievalAPI:   nd.RetrievalProtocol3140.RetrievalAPI,
 		storageAPI:     nd.StorageProtocol3140.StorageAPI,
 	}
@@ -196,7 +196,7 @@ func RunAPIAndWait(ctx context.Context, nd *node.Node, config *config.APIConfig,
 
 	// Write the resolved API address to the repo
 	config.Address = apiListener.Multiaddr().String()
-	if err := nd.Refactor3140.Repo.SetAPIAddr(config.Address); err != nil {
+	if err := nd.Repo.SetAPIAddr(config.Address); err != nil {
 		return errors.Wrap(err, "Could not save API address to repo")
 	}
 	// Signal that the sever has started and then wait for a signal to stop.

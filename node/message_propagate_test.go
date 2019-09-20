@@ -63,7 +63,7 @@ func TestMessagePropagation(t *testing.T) {
 	require.Equal(t, 0, len(nodes[0].Refactor3140.Inbox.Pool().Pending()))
 
 	t.Run("message propagates", func(t *testing.T) {
-		_, err := sender.Refactor3140.PorcelainAPI.MessageSend(
+		_, err := sender.PorcelainAPI.MessageSend(
 			ctx,
 			senderAddress,
 			address.NetworkAddress,

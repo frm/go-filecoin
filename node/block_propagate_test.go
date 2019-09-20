@@ -139,7 +139,7 @@ func makeNodesBlockPropTests(t *testing.T, numNodes int) (address.Address, []*No
 	)
 	seed.GiveKey(t, minerNode, 0)
 	mineraddr, ownerAddr := seed.GiveMiner(t, minerNode, 0)
-	_, err := storage.NewMiner(mineraddr, ownerAddr, &storage.FakeProver{}, types.OneKiBSectorSize, minerNode, minerNode.Refactor3140.Repo.DealsDatastore(), minerNode.Refactor3140.PorcelainAPI)
+	_, err := storage.NewMiner(mineraddr, ownerAddr, &storage.FakeProver{}, types.OneKiBSectorSize, minerNode, minerNode.Repo.DealsDatastore(), minerNode.PorcelainAPI)
 	assert.NoError(t, err)
 
 	nodes := []*Node{minerNode}

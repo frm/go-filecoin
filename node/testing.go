@@ -107,11 +107,11 @@ func (cs *ChainSeed) GiveKey(t *testing.T, nd *Node, key int) address.Address {
 // GiveMiner gives the specified miner to the node. Returns the address and the owner addresss
 func (cs *ChainSeed) GiveMiner(t *testing.T, nd *Node, which int) (address.Address, address.Address) {
 	t.Helper()
-	cfg := nd.Refactor3140.Repo.Config()
+	cfg := nd.Repo.Config()
 	m := cs.info.Miners[which]
 
 	cfg.Mining.MinerAddress = m.Address
-	require.NoError(t, nd.Refactor3140.Repo.ReplaceConfig(cfg))
+	require.NoError(t, nd.Repo.ReplaceConfig(cfg))
 
 	ownerAddr, err := cs.info.Keys[m.Owner].Address()
 	require.NoError(t, err)

@@ -2,9 +2,6 @@ package node
 
 import (
 	"github.com/filecoin-project/go-filecoin/message"
-	"github.com/filecoin-project/go-filecoin/porcelain"
-	"github.com/filecoin-project/go-filecoin/repo"
-	"github.com/filecoin-project/go-filecoin/version"
 	"github.com/filecoin-project/go-filecoin/wallet"
 	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-hamt-ipld"
@@ -21,18 +18,6 @@ import (
 //
 // TODO: clean this up to complete the refactor https://github.com/filecoin-project/go-filecoin/issues/3140
 type ToSplitOrNotToSplitNode struct {
-	// TODO: move to node
-	VersionTable version.ProtocolVersionTable
-
-	// TODO: move to node
-	PorcelainAPI *porcelain.API
-
-	// Repo is the repo this node was created with
-	// it contains all persistent artifacts of the filecoin node
-	//
-	// TODO: move to store, although each submodule should only see a view of it
-	Repo repo.Repo
-
 	// Incoming messages for block mining.
 	//
 	// TODO: have this two form the `MessagingSubmodule` (issue: ???)

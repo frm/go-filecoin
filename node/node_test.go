@@ -142,7 +142,7 @@ func TestNodeStartMining(t *testing.T) {
 	mineraddr, ownerAddr := seed.GiveMiner(t, minerNode, 0)
 	// Start mining give error for fail to get miner actor from the heaviest tipset stateroot
 	assert.Contains(t, minerNode.StartMining(ctx).Error(), "failed to get miner actor")
-	_, err := storage.NewMiner(mineraddr, ownerAddr, &storage.FakeProver{}, types.OneKiBSectorSize, minerNode, minerNode.Refactor3140.Repo.DealsDatastore(), nil)
+	_, err := storage.NewMiner(mineraddr, ownerAddr, &storage.FakeProver{}, types.OneKiBSectorSize, minerNode, minerNode.Repo.DealsDatastore(), nil)
 	assert.NoError(t, err)
 
 	assert.NoError(t, minerNode.Start(ctx))
@@ -220,7 +220,7 @@ func TestNodeConfig(t *testing.T) {
 	}
 
 	n := node.GenNode(t, &tno)
-	cfg := n.Refactor3140.Repo.Config()
+	cfg := n.Repo.Config()
 	_, blockTime := n.MiningTimes()
 
 	actualBlockTime := time.Duration(configBlockTime / mining.MineDelayConversionFactor)

@@ -274,6 +274,7 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 	nd := &Node{
 		Clock:       nc.Clock,
 		OfflineMode: nc.OfflineMode,
+		Repo:        nc.Repo,
 		Network3140: NetworkSubmodule{
 			host:        peerHost,
 			PeerHost:    peerHost,
@@ -288,7 +289,6 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 			Exchange:     bswap,
 			Inbox:        inbox,
 			Outbox:       outbox,
-			Repo:         nc.Repo,
 			Wallet:       fcWallet,
 		},
 		Chain3140: ChainSubmodule{
@@ -302,7 +302,7 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 		},
 	}
 
-	nd.Refactor3140.PorcelainAPI = porcelain.New(plumbing.New(&plumbing.APIDeps{
+	nd.PorcelainAPI = porcelain.New(plumbing.New(&plumbing.APIDeps{
 		Bitswap:       bswap,
 		Chain:         chainState,
 		Sync:          cst.NewChainSyncProvider(chainSyncer),
@@ -321,19 +321,19 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 	}))
 
 	// Bootstrapping network peers.
-	periodStr := nd.Refactor3140.Repo.Config().Bootstrap.Period
+	periodStr := nd.Repo.Config().Bootstrap.Period
 	period, err := time.ParseDuration(periodStr)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't parse bootstrap period %s", periodStr)
 	}
 
 	// Bootstrapper maintains connections to some subset of addresses
-	ba := nd.Refactor3140.Repo.Config().Bootstrap.Addresses
+	ba := nd.Repo.Config().Bootstrap.Addresses
 	bpi, err := net.PeerAddrsToAddrInfo(ba)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't parse bootstrap addresses [%s]", ba)
 	}
-	minPeerThreshold := nd.Refactor3140.Repo.Config().Bootstrap.MinPeerThreshold
+	minPeerThreshold := nd.Repo.Config().Bootstrap.MinPeerThreshold
 	nd.Network3140.Bootstrapper = net.NewBootstrapper(bpi, nd.Host(), nd.Host().Network(), nd.Network3140.Router, minPeerThreshold, period)
 
 	return nd, nil
